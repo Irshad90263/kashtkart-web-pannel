@@ -38,6 +38,10 @@ const emptyForm = {
   name: "",
   slug: "",
   description: "",
+  image: null,
+  imagePreview: "",
+  imageUrl: "",
+  imageRemoved: false,
 };
 
 export default function Categories() {
@@ -101,17 +105,67 @@ export default function Categories() {
     setSuccess("");
   };
 
-  const handleEdit = (cat) => {
-    setEditing(cat);
-    setForm({
-      name: cat.name || "",
-      slug: cat.slug || "",
-      description: cat.description || "",
-    });
-    setSuccess("");
+  // Image change handler
+const handleImageChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setError("Please upload a valid image (JPEG, PNG, WebP)");
+      return;
+    }
+    
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Image size should be less than 2MB");
+      return;
+    }
+    
+    setForm(prev => ({
+      ...prev,
+      image: file,
+      imagePreview: URL.createObjectURL(file),
+      imageUrl: "" // Clear existing URL if new image selected
+    }));
     setError("");
-    setIsModalOpen(true);
+  }
+};
+
+// Remove image
+const handleRemoveImage = () => {
+  setForm(prev => ({
+    ...prev,
+    image: null,
+    imagePreview: "",
+    imageUrl: "",
+    imageRemoved: true
+  }));
+};
+
+// Cleanup preview URL on unmount
+useEffect(() => {
+  return () => {
+    if (form.imagePreview) {
+      URL.revokeObjectURL(form.imagePreview);
+    }
   };
+}, [form.imagePreview]);
+
+ const handleEdit = (cat) => {
+  setEditing(cat);
+  setForm({
+    name: cat.name || "",
+    slug: cat.slug || "",
+    description: cat.description || "",
+    image: null,
+    imagePreview: cat.image?.url || "", // assuming API returns { image: { url } }
+    imageUrl: cat.image?.url || "",
+  });
+  setSuccess("");
+  setError("");
+  setIsModalOpen(true);
+};
 
   const handleDelete = async (cat) => {
     if (!isLoggedIn) {
@@ -235,75 +289,100 @@ export default function Categories() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!isLoggedIn) {
-      setError("You must be logged in as admin to manage categories.");
-      return;
-    }
+  if (!isLoggedIn) {
+    setError("You must be logged in as admin to manage categories.");
+    return;
+  }
 
-    if (!form.name.trim()) {
-      setError("Category name is required.");
-      return;
-    }
+  if (!form.name.trim()) {
+    setError("Category name is required.");
+    return;
+  }
 
-    const payload = {
-      name: form.name.trim(),
-      // slug optional: backend may auto-generate
-      ...(form.slug.trim() && { slug: form.slug.trim() }),
-      description: form.description.trim(),
-      isActive: true,
-    };
+  try {
+    setSaving(true);
+    setError("");
+    setSuccess("");
 
-    try {
-      setSaving(true);
-      setError("");
-      setSuccess("");
+    let payload;  // 🔥 Dynamic payload - FormData ya JSON
 
-      if (editing) {
-        const idOrSlug = editing.slug || editing._id || editing.id;
-        if (!idOrSlug) {
-          throw new Error("Missing category identifier for update.");
-        }
-        await updateCategory(idOrSlug, payload);
-        setSuccess("Category updated successfully.");
-        Swal.fire({
-          icon: "success",
-          title: "Updated",
-          text: "Category updated successfully.",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } else {
-        await createCategory(payload);
-        setSuccess("Category created successfully.");
-        Swal.fire({
-          icon: "success",
-          title: "Created",
-          text: "Category created successfully.",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+    // 🔥 Check if we have a new image file
+    if (form.image) {
+      // Use FormData for file upload
+      payload = new FormData();
+      payload.append('name', form.name.trim());
+      if (form.slug.trim()) payload.append('slug', form.slug.trim());
+      if (form.description.trim()) payload.append('description', form.description.trim());
+      payload.append('image', form.image);
+      
+      // If editing and we want to remove existing image
+      if (editing && !form.imageUrl && !form.imagePreview) {
+        payload.append('removeImage', 'true');
       }
-
-      resetForm();
-      setIsModalOpen(false);
-      await fetchCategories();
-    } catch (e) {
-      const msg =
-        e?.response?.data?.message ||
-        e?.message ||
-        "Failed to save category.";
-      setError(msg);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: msg,
-      });
-    } finally {
-      setSaving(false);
+    } else {
+      // Use JSON for normal data (no image file)
+      payload = {
+        name: form.name.trim(),
+        ...(form.slug.trim() && { slug: form.slug.trim() }),
+        description: form.description.trim(),
+      };
+      
+      // If editing and we want to keep existing image
+      if (editing && form.imageUrl) {
+        payload.imageUrl = form.imageUrl;
+      }
+      
+      // If editing and we want to remove image
+      if (editing && !form.imageUrl && !form.imagePreview && form.imageRemoved) {
+        payload.removeImage = true;
+      }
     }
-  };
+
+    // 🔥 Use smart API functions (jo auto-detect karte hain)
+    if (editing) {
+      const idOrSlug = editing.slug || editing._id || editing.id;
+      if (!idOrSlug) throw new Error("Missing category identifier for update.");
+      
+      // ✅ Same updateCategory function - yeh khud detect karega ki payload FormData hai ya JSON
+      await updateCategory(idOrSlug, payload);
+      setSuccess("Category updated successfully.");
+      Swal.fire({
+        icon: "success",
+        title: "Updated",
+        text: "Category updated successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } else {
+      // ✅ Same createCategory function - yeh khud detect karega ki payload FormData hai ya JSON
+      await createCategory(payload);
+      setSuccess("Category created successfully.");
+      Swal.fire({
+        icon: "success",
+        title: "Created",
+        text: "Category created successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
+
+    resetForm();
+    setIsModalOpen(false);
+    await fetchCategories();
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || "Failed to save category.";
+    setError(msg);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: msg,
+    });
+  } finally {
+    setSaving(false);
+  }
+};
 
   const filteredCategories = useMemo(() => {
     if (!search.trim()) return categories;
@@ -779,6 +858,47 @@ export default function Categories() {
                 />
               </div>
 
+               {/* Image Upload */}
+<div>
+  <label className="block mb-1 text-sm font-medium" style={{ color: themeColors.text }}>
+    Category Image <span className="text-red-500">*</span>
+  </label>
+  
+  {/* Image Preview */}
+  {(form.imagePreview || form.imageUrl) && (
+    <div className="relative mb-3">
+      <img
+        src={form.imagePreview || form.imageUrl}
+        alt="Category preview"
+        className="w-32 h-32 object-cover rounded-lg border"
+        style={{ borderColor: themeColors.border }}
+      />
+      <button
+        type="button"
+        onClick={handleRemoveImage}
+        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+      >
+        ×
+      </button>
+    </div>
+  )}
+  
+  {/* File Input */}
+  <input
+    type="file"
+    accept="image/jpeg,image/png,image/jpg,image/webp"
+    onChange={handleImageChange}
+    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:text-sm file:font-medium"
+    style={{
+      backgroundColor: themeColors.background,
+      borderColor: themeColors.border,
+      color: themeColors.text,
+    }}
+  />
+  <p className="text-xs mt-1 opacity-70" style={{ color: themeColors.text }}>
+    Supported formats: JPEG, PNG, WebP. Max size: 2MB
+  </p>
+</div>   
 
 
               {/* Actions */}

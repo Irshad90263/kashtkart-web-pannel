@@ -5,20 +5,49 @@ import http from "./http";
 export const getCategories = async (status = 'active') => {
   const params = status ? { status } : {};
   const { data } = await http.get("/categories", { params });
-  return data; // expect: array of categories
-};
-
-// Admin Add – POST {{baseUrl}}/categories (Token via interceptor)
-export const createCategory = async (payload) => {
-  const { data } = await http.post("/categories", payload);
-  return data; // could be { message, category } or category
-};
-
-// Admin Update – PUT {{baseUrl}}/categories/:idOrSlug (Token)
-export const updateCategory = async (idOrSlug, payload) => {
-  const { data } = await http.put(`/categories/${idOrSlug}`, payload);
   return data;
-  // NOTE: If backend uses PATCH instead of PUT, change to http.patch(...)
+};
+
+// Smart create - detects if payload contains file
+export const createCategory = async (payload) => {
+  // Check if payload has a File object
+  const hasFile = payload instanceof FormData || 
+                  (payload && (payload.get?.('image') instanceof File));
+  
+  let config = {};
+  
+  if (hasFile || payload instanceof FormData) {
+    // If it's FormData, use multipart
+    config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    };
+  }
+  
+  const { data } = await http.post("/categories", payload, config);
+  return data;
+};
+
+// Smart update - detects if payload contains file
+export const updateCategory = async (idOrSlug, payload) => {
+  // Check if payload has a File object
+  const hasFile = payload instanceof FormData || 
+                  (payload && (payload.get?.('image') instanceof File));
+  
+  let config = {};
+  
+  if (hasFile || payload instanceof FormData) {
+    // If it's FormData, use multipart
+    config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    };
+  }
+  
+  const { data } = await http.put(`/categories/${idOrSlug}`, payload, config);
+  return data;
 };
 
 // Admin Delete – DELETE {{baseUrl}}/categories/:idOrSlug (Token)
