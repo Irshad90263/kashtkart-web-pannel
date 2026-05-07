@@ -11,6 +11,8 @@ import {
   FaBlog,
   FaVideo,
   FaMoneyBillWave,
+  FaStore,
+  FaPlus,
 } from "react-icons/fa";
 
 // pages
@@ -26,10 +28,14 @@ const Blogs = lazy(() => import("../pages/Blogs"));
 const ChangePassword = lazy(() => import("../pages/ChangePassword"));
 const Users = lazy(() => import("../pages/Users"));
 const PayMethods = lazy(() => import("../pages/PayMethods"));
+const Vendors = lazy(() => import("../pages/Vendors"));
+const AddVendor = lazy(() => import("../pages/AddVendor"));
 
 const routes = [
   { path: "/dashboard", component: Dashboard, name: "Dashboard", icon: FaTachometerAlt },
   { path: "/users", component: Users, name: "Users", icon: FaUsers },
+  { path: "/vendors", component: Vendors, name: "Vendors", icon: FaStore },
+  { path: "/vendors/add", component: AddVendor, name: "Add Vendor", icon: FaPlus, hide: true },
   { path: "/categories", component: Categories, name: "Categories", icon: FaBox },
   { path: "/products", component: Products, name: "Products", icon: FaBox },
   // { path: "/offers", component: Offers, name: "Offers", icon: FaCoins },
