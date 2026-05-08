@@ -11,6 +11,7 @@ import {
   deleteProduct,
   toggleProductStatus,
 } from "../apis/products";
+import { getVendorList } from "../apis/vendor";
 import {
   FaBoxOpen,
   FaPlus,
@@ -24,6 +25,7 @@ import {
   FaToggleOn,
   FaToggleOff,
   FaEye,
+  FaChevronDown,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -49,6 +51,7 @@ const emptyForm = {
   ingredients: "",
   shelfLife: "",
   netWeight: "",
+  vendor_id: "",
 };
 
 export default function Products() {
@@ -57,6 +60,7 @@ export default function Products() {
   const { isLoggedIn } = useAuth();
 
   const [categories, setCategories] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [products, setProducts] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -76,6 +80,7 @@ export default function Products() {
 
   // NEW: full view modal product
   const [viewProduct, setViewProduct] = useState(null);
+  const [vendorDropdownOpen, setVendorDropdownOpen] = useState(false);
 
   // ---------- fetchers ----------
   const fetchCategories = async () => {
@@ -85,6 +90,16 @@ export default function Products() {
       setCategories(list);
     } catch (e) {
       console.error("Failed to load categories", e);
+    }
+  };
+
+  const fetchVendors = async () => {
+    try {
+      const res = await getVendorList();
+      const list = res.vendors || [];
+      setVendors(list);
+    } catch (e) {
+      console.error("Failed to load vendors", e);
     }
   };
 
@@ -107,6 +122,7 @@ export default function Products() {
 
   useEffect(() => {
     fetchCategories();
+    fetchVendors();
     fetchProducts();
   }, [statusFilter]);
 
@@ -172,6 +188,7 @@ export default function Products() {
       ingredients: prod.about?.ingredients || "",
       shelfLife: prod.about?.shelfLife || "",
       netWeight: prod.about?.netWeight || "",
+      vendor_id: prod.vendor_id?._id || prod.vendor_id || "",
     });
 
     setMainImageFile(null);
@@ -191,6 +208,10 @@ export default function Products() {
 
     if (form.categoryId) {
       fd.append("categoryId", form.categoryId);
+    }
+
+    if (form.vendor_id) {
+      fd.append("vendor_id", form.vendor_id);
     }
 
     if (form.description.trim()) {
@@ -1300,6 +1321,112 @@ export default function Products() {
                   />
                 </div>
 
+                {/* Net Weight */}
+                <div>
+                  <label
+                    htmlFor="netWeight"
+                    className="block mb-1 text-sm font-medium"
+                    style={{ color: themeColors.text }}
+                  >
+                    Net Weight
+                  </label>
+                  <input
+                    id="netWeight"
+                    name="netWeight"
+                    type="text"
+                    value={form.netWeight}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                    style={{
+                      backgroundColor: themeColors.background,
+                      borderColor: themeColors.border,
+                      color: themeColors.text,
+                    }}
+                    placeholder="1 kg"
+                  />
+                </div>
+
+                {/* Vendor */}
+                <div className="relative">
+                  <label
+                    htmlFor="vendor_id"
+                    className="block mb-1 text-sm font-medium"
+                    style={{ color: themeColors.text }}
+                  >
+                    Vendor
+                  </label>
+                  <div className="relative">
+                    <div
+                      onClick={() => setVendorDropdownOpen(!vendorDropdownOpen)}
+                      className="w-full px-3 py-2 rounded-lg border text-sm cursor-pointer flex justify-between items-center min-h-[38px]"
+                      style={{
+                        backgroundColor: themeColors.background,
+                        borderColor: themeColors.border,
+                        color: themeColors.text,
+                      }}
+                    >
+                      <span className="truncate">
+                        {form.vendor_id 
+                          ? (vendors.find(v => v._id === form.vendor_id)?.name || "Select Vendor")
+                          : "Select Vendor"}
+                      </span>
+                      <FaChevronDown 
+                        className={`w-3 h-3 transition-transform duration-300 ${vendorDropdownOpen ? 'rotate-180' : ''}`} 
+                        style={{ color: themeColors.text }}
+                      />
+                    </div>
+
+                    {vendorDropdownOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-[45]" 
+                          onClick={() => setVendorDropdownOpen(false)}
+                        ></div>
+                        <div
+                          className="absolute z-[50] w-full mt-1 max-h-60 overflow-y-auto rounded-lg border shadow-xl custom-scrollbar"
+                          style={{
+                            backgroundColor: themeColors.surface,
+                            borderColor: themeColors.border,
+                          }}
+                        >
+                          <div
+                            onClick={() => {
+                              setForm(prev => ({ ...prev, vendor_id: "" }));
+                              setVendorDropdownOpen(false);
+                            }}
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-black/5 transition-colors"
+                            style={{ color: themeColors.text }}
+                          >
+                            Select Vendor
+                          </div>
+                          {vendors.map((v) => (
+                            <div
+                              key={v._id}
+                              onClick={() => {
+                                setForm(prev => ({ ...prev, vendor_id: v._id }));
+                                setVendorDropdownOpen(false);
+                              }}
+                              className="px-3 py-2 cursor-pointer hover:bg-black/5 transition-colors border-t border-black/5"
+                              style={{ 
+                                backgroundColor: form.vendor_id === v._id ? themeColors.primary + '10' : 'transparent'
+                              }}
+                            >
+                              <div className="text-sm font-medium" style={{ color: themeColors.text }}>
+                                {v.name}
+                              </div>
+                              {v.contactDetails?.phoneNumber && (
+                                <div className="text-[11px] opacity-50" style={{ color: themeColors.text }}>
+                                  {v.contactDetails.phoneNumber}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 {/* Description */}
                 <div className="md:col-span-2">
                   <label
@@ -1372,31 +1499,6 @@ export default function Products() {
                       color: themeColors.text,
                     }}
                     placeholder="2 days"
-                  />
-                </div>
-
-                {/* Net Weight */}
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="netWeight"
-                    className="block mb-1 text-sm font-medium"
-                    style={{ color: themeColors.text }}
-                  >
-                    Net Weight
-                  </label>
-                  <input
-                    id="netWeight"
-                    name="netWeight"
-                    type="text"
-                    value={form.netWeight}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
-                    style={{
-                      backgroundColor: themeColors.background,
-                      borderColor: themeColors.border,
-                      color: themeColors.text,
-                    }}
-                    placeholder="1 kg"
                   />
                 </div>
 

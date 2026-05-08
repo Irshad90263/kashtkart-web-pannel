@@ -13,6 +13,7 @@ import {
   FaMoneyBillWave,
   FaStore,
   FaPlus,
+  FaBriefcase,
 } from "react-icons/fa";
 
 // pages
@@ -25,17 +26,23 @@ const Enquiries = lazy(() => import("../pages/Enquiries"));
 const Sliders = lazy(() => import("../pages/Sliders"));
 const ReviewVideos = lazy(() => import("../pages/ReviewVideos"));
 const Blogs = lazy(() => import("../pages/Blogs"));
+const AddBlog = lazy(() => import("../pages/AddBlog"));
+const ViewBlog = lazy(() => import("../pages/ViewBlog"));
 const ChangePassword = lazy(() => import("../pages/ChangePassword"));
 const Users = lazy(() => import("../pages/Users"));
 const PayMethods = lazy(() => import("../pages/PayMethods"));
 const Vendors = lazy(() => import("../pages/Vendors"));
 const AddVendor = lazy(() => import("../pages/AddVendor"));
+const CorporateInquiries = lazy(() => import("../pages/CorporateInquiries"));
 
 const routes = [
   { path: "/dashboard", component: Dashboard, name: "Dashboard", icon: FaTachometerAlt },
+  { path: "/corporate-inquiries", component: CorporateInquiries, name: "Corporate Gifting", icon: FaBriefcase },
   { path: "/users", component: Users, name: "Users", icon: FaUsers },
   { path: "/vendors", component: Vendors, name: "Vendors", icon: FaStore },
   { path: "/vendors/add", component: AddVendor, name: "Add Vendor", icon: FaPlus, hide: true },
+  { path: "/vendors/edit/:id", component: AddVendor, name: "Edit Vendor", icon: FaPlus, hide: true },
+  { path: "/vendors/view/:id", component: AddVendor, name: "View Vendor", icon: FaPlus, hide: true },
   { path: "/categories", component: Categories, name: "Categories", icon: FaBox },
   { path: "/products", component: Products, name: "Products", icon: FaBox },
   // { path: "/offers", component: Offers, name: "Offers", icon: FaCoins },
@@ -44,7 +51,10 @@ const routes = [
   { path: "/sliders", component: Sliders, name: "Sliders", icon: FaImages },
   { path: "/review-videos", component: ReviewVideos, name: "Review Videos", icon: FaVideo },
   { path: "/pay-methods", component: PayMethods, name: "Pay Methods", icon: FaMoneyBillWave },
-  // { path: "/blogs", component: Blogs, name: "Blogs", icon: FaBlog },
+  { path: "/blogs", component: Blogs, name: "Blogs", icon: FaBlog },
+  { path: "/blogs/add", component: AddBlog, name: "Add Blog", icon: FaPlus, hide: true },
+  { path: "/blogs/edit/:id", component: AddBlog, name: "Edit Blog", icon: FaPlus, hide: true },
+  { path: "/blogs/view/:id", component: ViewBlog, name: "View Blog", icon: FaPlus, hide: true },
   { path: "/change-password", component: ChangePassword, name: "Change Password", icon: FaKey },
 ];
 

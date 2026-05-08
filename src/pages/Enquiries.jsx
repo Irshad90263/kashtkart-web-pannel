@@ -285,7 +285,7 @@ export default function Enquiries() {
 
           {/* Refresh */}
           <button
-            onClick={fetchEnquiries}
+            onClick={() => fetchEnquiries(1)}
             className="px-3 py-2 rounded-lg border text-sm flex items-center gap-2"
             style={{
               backgroundColor: themeColors.surface,

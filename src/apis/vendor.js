@@ -34,3 +34,8 @@ export const toggleVendorStatus = async (id, status) => {
     const res = await http.put(`/venders/${id}`, { isActive: status });
     return res.data;
 };
+
+export const getVendorList = async () => {
+    const res = await http.get("/venders/vendorlist");
+    return res.data;
+};
