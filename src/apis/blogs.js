@@ -13,6 +13,12 @@ export const createBlog = async (blogData) => {
   return data;
 };
 
+// Admin: Get single blog detailed - GET /blogs/admin/:id
+export const getBlogAdmin = async (id) => {
+  const { data } = await http.get(`/blogs/admin/${id}`);
+  return data;
+};
+
 // Admin: Update blog - PUT /blogs/admin/:idOrSlug
 export const updateBlog = async (idOrSlug, blogData) => {
   try {

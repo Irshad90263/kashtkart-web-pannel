@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
-import { getAllBlogs } from "../apis/blogs";
-import { FaArrowLeft, FaEdit, FaCalendarAlt, FaLink, FaImage, FaClock, FaShareAlt } from "react-icons/fa";
+import { getBlogAdmin } from "../apis/blogs";
+import { FaArrowLeft, FaEdit, FaCalendarAlt, FaLink, FaImage, FaClock, FaUser, FaPhoneAlt, FaCommentDots } from "react-icons/fa";
 
 export default function ViewBlog() {
   const { id } = useParams();
@@ -26,9 +26,8 @@ export default function ViewBlog() {
   useEffect(() => {
     const fetchBlog = async () => {
       try {
-        const res = await getAllBlogs(1, 1000);
-        const found = res.blogs.find(b => b._id === id);
-        setBlog(found);
+        const res = await getBlogAdmin(id);
+        setBlog(res.blog);
       } catch (err) {
         console.error("Error fetching blog:", err);
       } finally {
@@ -96,6 +95,7 @@ export default function ViewBlog() {
               />
             </div>
           </div>
+
         </div>
 
         {/* Right Column: Metadata & Featured Image */}
@@ -157,6 +157,54 @@ export default function ViewBlog() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Full Width Comments Section */}
+      <div className="bg-white p-8 rounded-md border shadow-sm" style={{ borderColor: themeColors.border }}>
+        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-6 flex items-center gap-2">
+          <span className="w-6 h-[1px] bg-gray-200"></span> User Comments ({blog.comments?.length || 0})
+        </h3>
+        
+        <div className="space-y-4">
+          {blog.comments && blog.comments.length > 0 ? (
+            blog.comments.map((item, index) => (
+              <div key={index} className="p-4 rounded-lg bg-gray-50 border border-gray-100 space-y-3">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-200 pb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-primary font-bold" style={{ color: themeColors.primary, backgroundColor: `${themeColors.primary}15` }}>
+                      {item.user?.firstName?.charAt(0) || <FaUser size={14} />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">
+                        {item.user ? `${item.user.firstName} ${item.user.lastName}` : "Unknown User"}
+                      </p>
+                      <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                        <FaClock size={8} /> {new Date(item.createdAt).toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-gray-200">
+                      <FaPhoneAlt size={10} className="text-green-500" />
+                      <span className="text-xs font-bold text-gray-700">{item.user?.phone || "N/A"}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <FaCommentDots className="text-gray-300 mt-1 flex-shrink-0" size={14} />
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {item.comment}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-10 text-gray-400">
+              <FaCommentDots size={30} className="mx-auto mb-2 opacity-20" />
+              <p className="text-sm">No comments yet on this post.</p>
+            </div>
+          )}
         </div>
       </div>
 

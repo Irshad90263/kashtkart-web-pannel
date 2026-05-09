@@ -73,6 +73,7 @@ export default function Products() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [mainImageFile, setMainImageFile] = useState(null);
+  const [galleryImageFiles, setGalleryImageFiles] = useState([]);
 
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState("table"); // "table" | "card"
@@ -140,6 +141,7 @@ export default function Products() {
     setForm(emptyForm);
     setEditing(null);
     setMainImageFile(null);
+    setGalleryImageFiles([]);
   };
 
   const openAddModal = () => {
@@ -162,6 +164,15 @@ export default function Products() {
   const handleMainImageChange = (e) => {
     const file = e.target.files?.[0];
     setMainImageFile(file || null);
+  };
+
+  const handleGalleryImagesChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    setGalleryImageFiles((prev) => [...prev, ...files]);
+  };
+
+  const removeGalleryImage = (index) => {
+    setGalleryImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
 
@@ -192,6 +203,7 @@ export default function Products() {
     });
 
     setMainImageFile(null);
+    setGalleryImageFiles([]);
     setError("");
     setSuccess("");
     setIsModalOpen(true);
@@ -227,6 +239,12 @@ export default function Products() {
 
     if (mainImageFile) {
       fd.append("mainImage", mainImageFile);
+    }
+
+    if (galleryImageFiles.length > 0) {
+      galleryImageFiles.forEach((file) => {
+        fd.append("galleryImages", file);
+      });
     }
 
     return fd;
@@ -1540,6 +1558,81 @@ export default function Products() {
                     onChange={handleMainImageChange}
                     className="hidden"
                   />
+                </div>
+
+                {/* Gallery Images */}
+                <div className="md:col-span-2">
+                  <label
+                    htmlFor="galleryImagesInput"
+                    className="block mb-1 text-sm font-medium"
+                    style={{ color: themeColors.text }}
+                  >
+                    Gallery Images (Multiple)
+                  </label>
+                  <label
+                    htmlFor="galleryImagesInput"
+                    className="block border-2 border-dashed rounded-lg px-3 py-4 text-xs cursor-pointer flex flex-col items-center justify-center gap-2"
+                    style={{
+                      borderColor: themeColors.border,
+                      backgroundColor: themeColors.background,
+                      color: themeColors.text,
+                    }}
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <FaPlus />
+                      Add Gallery Images
+                    </div>
+                    <span className="opacity-60">You can select multiple images</span>
+                  </label>
+                  <input
+                    id="galleryImagesInput"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleGalleryImagesChange}
+                    className="hidden"
+                  />
+
+                  {/* Gallery Previews */}
+                  {galleryImageFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-3 mt-3">
+                      {galleryImageFiles.map((file, idx) => (
+                        <div key={idx} className="relative group w-20 h-20">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt="preview"
+                            className="w-full h-full object-cover rounded-lg border"
+                            style={{ borderColor: themeColors.border }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeGalleryImage(idx)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Existing Gallery (if editing and no new files selected) */}
+                  {editing && galleryImageFiles.length === 0 && editing.galleryImages?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[10px] font-semibold opacity-50 mb-1 uppercase tracking-wider">Current Gallery:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {editing.galleryImages.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img.url}
+                            alt="current"
+                            className="w-12 h-12 object-cover rounded border"
+                            style={{ borderColor: themeColors.border }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
