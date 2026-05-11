@@ -32,12 +32,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
 // ---------- helpers ----------
 const fmtNum = (n) =>
-  typeof n === "number" ? n.toLocaleString("en-IN") : n ?? "-";
+  typeof n === "number" ? n.toLocaleString("en-IN") : (n ?? "-");
 
 const fmtCurrency = (n) =>
   typeof n === "number"
     ? `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-    : n ?? "-";
+    : (n ?? "-");
 
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString("en-IN") : "-";
@@ -77,7 +77,7 @@ export default function Products() {
 
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState("table"); // "table" | "card"
-  const [statusFilter, setStatusFilter] = useState('active'); // 'active' or 'inactive'
+  const [statusFilter, setStatusFilter] = useState("active"); // 'active' or 'inactive'
 
   // NEW: full view modal product
   const [viewProduct, setViewProduct] = useState(null);
@@ -112,9 +112,7 @@ export default function Products() {
       setProducts(list);
     } catch (e) {
       setError(
-        e?.response?.data?.message ||
-          e?.message ||
-          "Failed to load products."
+        e?.response?.data?.message || e?.message || "Failed to load products.",
       );
     } finally {
       setLoading(false);
@@ -175,16 +173,12 @@ export default function Products() {
     setGalleryImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-
-
   const handleEdit = (prod) => {
     setEditing(prod);
     setForm({
       name: prod.name || "",
       price:
-        typeof prod.price === "number"
-          ? String(prod.price)
-          : prod.price || "",
+        typeof prod.price === "number" ? String(prod.price) : prod.price || "",
       discountPercent:
         typeof prod.discountPercent === "number"
           ? String(prod.discountPercent)
@@ -290,9 +284,7 @@ export default function Products() {
       });
     } catch (e) {
       const msg =
-        e?.response?.data?.message ||
-        e?.message ||
-        "Failed to delete product.";
+        e?.response?.data?.message || e?.message || "Failed to delete product.";
       setError(msg);
       Swal.fire({
         icon: "error",
@@ -324,20 +316,26 @@ export default function Products() {
 
       const response = await toggleProductStatus(idOrSlug);
       const newStatus = !prod.isActive;
-      
+
       // Remove from current view if status doesn't match filter
-      if ((statusFilter === 'active' && !newStatus) || (statusFilter === 'inactive' && newStatus)) {
-        setProducts((prev) => prev.filter((p) => 
-          (p._id || p.id || p.slug) !== (prod._id || prod.id || prod.slug)
-        ));
+      if (
+        (statusFilter === "active" && !newStatus) ||
+        (statusFilter === "inactive" && newStatus)
+      ) {
+        setProducts((prev) =>
+          prev.filter(
+            (p) =>
+              (p._id || p.id || p.slug) !== (prod._id || prod.id || prod.slug),
+          ),
+        );
       } else {
         // Update status in current view
         setProducts((prev) =>
           prev.map((p) =>
             (p._id || p.id || p.slug) === (prod._id || prod.id || prod.slug)
               ? { ...p, isActive: newStatus }
-              : p
-          )
+              : p,
+          ),
         );
       }
 
@@ -430,9 +428,7 @@ export default function Products() {
       await fetchProducts();
     } catch (e) {
       const msg =
-        e?.response?.data?.message ||
-        e?.message ||
-        "Failed to save product.";
+        e?.response?.data?.message || e?.message || "Failed to save product.";
       setError(msg);
       Swal.fire({
         icon: "error",
@@ -466,18 +462,14 @@ export default function Products() {
   const getFinalPrice = (p) => {
     if (typeof p.finalPrice === "number") return p.finalPrice;
     if (typeof p.price === "number" && p.discountPercent) {
-      const discount =
-        (p.price * Number(p.discountPercent || 0)) / 100;
+      const discount = (p.price * Number(p.discountPercent || 0)) / 100;
       return p.price - discount;
     }
     return p.price;
   };
 
   return (
-    <div
-      className="space-y-6"
-      style={{ fontFamily: currentFont.family }}
-    >
+    <div className="space-y-6" style={{ fontFamily: currentFont.family }}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
@@ -492,8 +484,7 @@ export default function Products() {
             className="text-sm mt-1 opacity-75"
             style={{ color: themeColors.text }}
           >
-            Manage your e-commerce products, pricing, categories and
-            images.
+            Manage your e-commerce products, pricing, categories and images.
           </p>
         </div>
 
@@ -518,7 +509,8 @@ export default function Products() {
           </div>
 
           {/* Status Filter Toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-lg border"
+          <div
+            className="flex items-center gap-1 p-1 rounded-lg border"
             style={{
               backgroundColor: themeColors.surface,
               borderColor: themeColors.border,
@@ -530,8 +522,14 @@ export default function Products() {
                 statusFilter === "active" ? "" : "opacity-60"
               }`}
               style={{
-                backgroundColor: statusFilter === "active" ? themeColors.primary : "transparent",
-                color: statusFilter === "active" ? themeColors.onPrimary : themeColors.text,
+                backgroundColor:
+                  statusFilter === "active"
+                    ? themeColors.primary
+                    : "transparent",
+                color:
+                  statusFilter === "active"
+                    ? themeColors.onPrimary
+                    : themeColors.text,
               }}
             >
               Active
@@ -542,8 +540,14 @@ export default function Products() {
                 statusFilter === "inactive" ? "" : "opacity-60"
               }`}
               style={{
-                backgroundColor: statusFilter === "inactive" ? themeColors.primary : "transparent",
-                color: statusFilter === "inactive" ? themeColors.onPrimary : themeColors.text,
+                backgroundColor:
+                  statusFilter === "inactive"
+                    ? themeColors.primary
+                    : "transparent",
+                color:
+                  statusFilter === "inactive"
+                    ? themeColors.onPrimary
+                    : themeColors.text,
               }}
             >
               Inactive
@@ -577,14 +581,11 @@ export default function Products() {
               }`}
               style={{
                 backgroundColor:
-                  viewMode === "table"
-                    ? themeColors.surface
-                    : "transparent",
+                  viewMode === "table" ? themeColors.surface : "transparent",
                 color: themeColors.text,
               }}
             >
-              <FaTable />{" "}
-              <span className="hidden sm:inline">Table</span>
+              <FaTable /> <span className="hidden sm:inline">Table</span>
             </button>
             <button
               type="button"
@@ -593,15 +594,12 @@ export default function Products() {
               style={{
                 borderColor: themeColors.border,
                 backgroundColor:
-                  viewMode === "card"
-                    ? themeColors.surface
-                    : "transparent",
+                  viewMode === "card" ? themeColors.surface : "transparent",
                 opacity: viewMode === "card" ? 1 : 0.7,
                 color: themeColors.text,
               }}
             >
-              <FaThLarge />{" "}
-              <span className="hidden sm:inline">Cards</span>
+              <FaThLarge /> <span className="hidden sm:inline">Cards</span>
             </button>
           </div>
 
@@ -613,9 +611,7 @@ export default function Products() {
               backgroundColor: themeColors.primary,
               color: themeColors.onPrimary,
             }}
-            title={
-              isLoggedIn ? "Add new product" : "Login as admin to add"
-            }
+            title={isLoggedIn ? "Add new product" : "Login as admin to add"}
           >
             <FaPlus />
             Add
@@ -643,13 +639,10 @@ export default function Products() {
               className="p-3 rounded-lg text-sm border"
               style={{
                 backgroundColor:
-                  (themeColors.success || themeColors.primary) +
-                  "15",
+                  (themeColors.success || themeColors.primary) + "15",
                 borderColor:
-                  (themeColors.success || themeColors.primary) +
-                  "50",
-                color:
-                  themeColors.success || themeColors.primary,
+                  (themeColors.success || themeColors.primary) + "50",
+                color: themeColors.success || themeColors.primary,
               }}
             >
               {success}
@@ -660,17 +653,14 @@ export default function Products() {
               className="p-3 rounded-lg text-sm border"
               style={{
                 backgroundColor:
-                  (themeColors.warning || themeColors.primary) +
-                  "15",
+                  (themeColors.warning || themeColors.primary) + "15",
                 borderColor:
-                  (themeColors.warning || themeColors.primary) +
-                  "50",
-                color:
-                  themeColors.warning || themeColors.primary,
+                  (themeColors.warning || themeColors.primary) + "50",
+                color: themeColors.warning || themeColors.primary,
               }}
             >
-              You are viewing products as public. Login as admin to
-              add, edit, or delete products.
+              You are viewing products as public. Login as admin to add, edit,
+              or delete products.
             </div>
           )}
         </div>
@@ -785,21 +775,18 @@ export default function Products() {
                           className="px-4 py-2 text-xs"
                           style={{ color: themeColors.text }}
                         >
-                          {p.discountPercent
-                            ? `${p.discountPercent}%`
-                            : "-"}
+                          {p.discountPercent ? `${p.discountPercent}%` : "-"}
                         </td>
                         <td className="px-4 py-2">
                           <span
                             className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold"
                             style={{
                               backgroundColor: p.isActive
-                                ? (themeColors.success ||
-                                    themeColors.primary) + "15"
+                                ? (themeColors.success || themeColors.primary) +
+                                  "15"
                                 : themeColors.border,
                               color: p.isActive
-                                ? themeColors.success ||
-                                  themeColors.primary
+                                ? themeColors.success || themeColors.primary
                                 : themeColors.text,
                             }}
                           >
@@ -824,8 +811,7 @@ export default function Products() {
                                 borderColor: themeColors.border,
                                 color: p.isActive
                                   ? themeColors.warning || "#f59e0b"
-                                  : themeColors.success ||
-                                    themeColors.primary,
+                                  : themeColors.success || themeColors.primary,
                               }}
                               title={
                                 isLoggedIn
@@ -835,11 +821,7 @@ export default function Products() {
                                   : "Login as admin to change status"
                               }
                             >
-                              {p.isActive ? (
-                                <FaToggleOn />
-                              ) : (
-                                <FaToggleOff />
-                              )}
+                              {p.isActive ? <FaToggleOn /> : <FaToggleOff />}
                             </button>
 
                             {/* View Button */}
@@ -867,9 +849,7 @@ export default function Products() {
                                 color: themeColors.text,
                               }}
                               title={
-                                isLoggedIn
-                                  ? "Edit"
-                                  : "Login as admin to edit"
+                                isLoggedIn ? "Edit" : "Login as admin to edit"
                               }
                             >
                               <FaEdit />
@@ -938,9 +918,7 @@ export default function Products() {
                       <div className="relative">
                         <img
                           src={
-                            p.mainImage?.url ||
-                            p.galleryImages?.[0]?.url ||
-                            ""
+                            p.mainImage?.url || p.galleryImages?.[0]?.url || ""
                           }
                           alt={p.name}
                           className="w-full h-40 object-cover"
@@ -949,8 +927,7 @@ export default function Products() {
                           <span
                             className="absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-semibold"
                             style={{
-                              backgroundColor:
-                                themeColors.primary + "dd",
+                              backgroundColor: themeColors.primary + "dd",
                               color: themeColors.onPrimary,
                             }}
                           >
@@ -961,8 +938,7 @@ export default function Products() {
                           <span
                             className="absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-semibold"
                             style={{
-                              backgroundColor:
-                                themeColors.danger + "dd",
+                              backgroundColor: themeColors.danger + "dd",
                               color: themeColors.onPrimary,
                             }}
                           >
@@ -1056,39 +1032,35 @@ export default function Products() {
                         </div>
 
                         {/* Add-ons */}
-                        {Array.isArray(p.addOns) &&
-                          p.addOns.length > 0 && (
-                            <div className="mt-1">
-                              <p
-                                className="text-[11px] font-semibold mb-1"
-                                style={{ color: themeColors.text }}
-                              >
-                                Add-ons
-                              </p>
-                              <div className="flex flex-wrap gap-1">
-                                {p.addOns.map((a, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-2 py-0.5 rounded-full text-[11px]"
-                                    style={{
-                                      backgroundColor: a.isDefault
-                                        ? (themeColors.success ||
-                                            themeColors.primary) +
-                                          "20"
-                                        : themeColors.background + "60",
-                                      color: themeColors.text,
-                                    }}
-                                  >
-                                    {a.name}{" "}
-                                    {a.price
-                                      ? `(+${fmtCurrency(a.price)})`
-                                      : ""}
-                                    {a.isDefault ? " • Default" : ""}
-                                  </span>
-                                ))}
-                              </div>
+                        {Array.isArray(p.addOns) && p.addOns.length > 0 && (
+                          <div className="mt-1">
+                            <p
+                              className="text-[11px] font-semibold mb-1"
+                              style={{ color: themeColors.text }}
+                            >
+                              Add-ons
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {p.addOns.map((a, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-0.5 rounded-full text-[11px]"
+                                  style={{
+                                    backgroundColor: a.isDefault
+                                      ? (themeColors.success ||
+                                          themeColors.primary) + "20"
+                                      : themeColors.background + "60",
+                                    color: themeColors.text,
+                                  }}
+                                >
+                                  {a.name}{" "}
+                                  {a.price ? `(+${fmtCurrency(a.price)})` : ""}
+                                  {a.isDefault ? " • Default" : ""}
+                                </span>
+                              ))}
                             </div>
-                          )}
+                          </div>
+                        )}
 
                         {/* Gallery thumbnails */}
                         {Array.isArray(p.galleryImages) &&
@@ -1113,8 +1085,7 @@ export default function Products() {
                             style={{ color: themeColors.text }}
                             className="opacity-70"
                           >
-                            Created:{" "}
-                            {p.createdAt ? fmtDate(p.createdAt) : "-"}
+                            Created: {p.createdAt ? fmtDate(p.createdAt) : "-"}
                           </span>
                           <div className="flex items-center gap-2">
                             {/* View button in card */}
@@ -1141,9 +1112,7 @@ export default function Products() {
                                 color: themeColors.text,
                               }}
                               title={
-                                isLoggedIn
-                                  ? "Edit"
-                                  : "Login as admin to edit"
+                                isLoggedIn ? "Edit" : "Login as admin to edit"
                               }
                             >
                               <FaEdit /> Edit
@@ -1384,20 +1353,21 @@ export default function Products() {
                       }}
                     >
                       <span className="truncate">
-                        {form.vendor_id 
-                          ? (vendors.find(v => v._id === form.vendor_id)?.name || "Select Vendor")
+                        {form.vendor_id
+                          ? vendors.find((v) => v._id === form.vendor_id)
+                              ?.name || "Select Vendor"
                           : "Select Vendor"}
                       </span>
-                      <FaChevronDown 
-                        className={`w-3 h-3 transition-transform duration-300 ${vendorDropdownOpen ? 'rotate-180' : ''}`} 
+                      <FaChevronDown
+                        className={`w-3 h-3 transition-transform duration-300 ${vendorDropdownOpen ? "rotate-180" : ""}`}
                         style={{ color: themeColors.text }}
                       />
                     </div>
 
                     {vendorDropdownOpen && (
                       <>
-                        <div 
-                          className="fixed inset-0 z-[45]" 
+                        <div
+                          className="fixed inset-0 z-[45]"
                           onClick={() => setVendorDropdownOpen(false)}
                         ></div>
                         <div
@@ -1409,7 +1379,7 @@ export default function Products() {
                         >
                           <div
                             onClick={() => {
-                              setForm(prev => ({ ...prev, vendor_id: "" }));
+                              setForm((prev) => ({ ...prev, vendor_id: "" }));
                               setVendorDropdownOpen(false);
                             }}
                             className="px-3 py-2 text-sm cursor-pointer hover:bg-black/5 transition-colors"
@@ -1421,19 +1391,31 @@ export default function Products() {
                             <div
                               key={v._id}
                               onClick={() => {
-                                setForm(prev => ({ ...prev, vendor_id: v._id }));
+                                setForm((prev) => ({
+                                  ...prev,
+                                  vendor_id: v._id,
+                                }));
                                 setVendorDropdownOpen(false);
                               }}
                               className="px-3 py-2 cursor-pointer hover:bg-black/5 transition-colors border-t border-black/5"
-                              style={{ 
-                                backgroundColor: form.vendor_id === v._id ? themeColors.primary + '10' : 'transparent'
+                              style={{
+                                backgroundColor:
+                                  form.vendor_id === v._id
+                                    ? themeColors.primary + "10"
+                                    : "transparent",
                               }}
                             >
-                              <div className="text-sm font-medium" style={{ color: themeColors.text }}>
+                              <div
+                                className="text-sm font-medium"
+                                style={{ color: themeColors.text }}
+                              >
                                 {v.name}
                               </div>
                               {v.contactDetails?.phoneNumber && (
-                                <div className="text-[11px] opacity-50" style={{ color: themeColors.text }}>
+                                <div
+                                  className="text-[11px] opacity-50"
+                                  style={{ color: themeColors.text }}
+                                >
                                   {v.contactDetails.phoneNumber}
                                 </div>
                               )}
@@ -1527,7 +1509,8 @@ export default function Products() {
                     className="block mb-1 text-sm font-medium"
                     style={{ color: themeColors.text }}
                   >
-                    Main Image {!editing && <span className="text-red-500">*</span>}
+                    Main Image{" "}
+                    {!editing && <span className="text-red-500">*</span>}
                   </label>
                   <label
                     htmlFor="mainImageInput"
@@ -1582,7 +1565,9 @@ export default function Products() {
                       <FaPlus />
                       Add Gallery Images
                     </div>
-                    <span className="opacity-60">You can select multiple images</span>
+                    <span className="opacity-60">
+                      You can select multiple images
+                    </span>
                   </label>
                   <input
                     id="galleryImagesInput"
@@ -1615,24 +1600,28 @@ export default function Products() {
                       ))}
                     </div>
                   )}
-                  
+
                   {/* Existing Gallery (if editing and no new files selected) */}
-                  {editing && galleryImageFiles.length === 0 && editing.galleryImages?.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-[10px] font-semibold opacity-50 mb-1 uppercase tracking-wider">Current Gallery:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {editing.galleryImages.map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={img.url}
-                            alt="current"
-                            className="w-12 h-12 object-cover rounded border"
-                            style={{ borderColor: themeColors.border }}
-                          />
-                        ))}
+                  {editing &&
+                    galleryImageFiles.length === 0 &&
+                    editing.galleryImages?.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-[10px] font-semibold opacity-50 mb-1 uppercase tracking-wider">
+                          Current Gallery:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {editing.galleryImages.map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img.url}
+                              alt="current"
+                              className="w-12 h-12 object-cover rounded border"
+                              style={{ borderColor: themeColors.border }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </div>
 
@@ -1668,8 +1657,8 @@ export default function Products() {
                       ? "Saving..."
                       : "Creating..."
                     : editing
-                    ? "Save Changes"
-                    : "Create Product"}
+                      ? "Save Changes"
+                      : "Create Product"}
                 </button>
               </div>
             </form>
@@ -1702,8 +1691,7 @@ export default function Products() {
                   className="px-2 py-1 rounded-full text-xs font-semibold"
                   style={{
                     backgroundColor: viewProduct.isActive
-                      ? (themeColors.success ||
-                          themeColors.primary) + "15"
+                      ? (themeColors.success || themeColors.primary) + "15"
                       : themeColors.border,
                     color: viewProduct.isActive
                       ? themeColors.success || themeColors.primary
@@ -1790,9 +1778,7 @@ export default function Products() {
                           <span
                             className="text-xs font-semibold"
                             style={{
-                              color:
-                                themeColors.success ||
-                                themeColors.primary,
+                              color: themeColors.success || themeColors.primary,
                             }}
                           >
                             {viewProduct.discountPercent}% OFF
@@ -1886,92 +1872,88 @@ export default function Products() {
                     </div>
                   )}
 
-                  {(Array.isArray(viewProduct.sizes) &&
-                    viewProduct.sizes.length > 0) && (
-                    <div>
-                      <p
-                        className="text-xs uppercase font-semibold mb-1"
-                        style={{ color: themeColors.text }}
-                      >
-                        Sizes
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {viewProduct.sizes.map((s) => (
-                          <span
-                            key={s}
-                            className="px-2 py-0.5 rounded-full text-[11px]"
-                            style={{
-                              backgroundColor:
-                                themeColors.background + "60",
-                              color: themeColors.text,
-                            }}
-                          >
-                            {s}
-                          </span>
-                        ))}
+                  {Array.isArray(viewProduct.sizes) &&
+                    viewProduct.sizes.length > 0 && (
+                      <div>
+                        <p
+                          className="text-xs uppercase font-semibold mb-1"
+                          style={{ color: themeColors.text }}
+                        >
+                          Sizes
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {viewProduct.sizes.map((s) => (
+                            <span
+                              key={s}
+                              className="px-2 py-0.5 rounded-full text-[11px]"
+                              style={{
+                                backgroundColor: themeColors.background + "60",
+                                color: themeColors.text,
+                              }}
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {(Array.isArray(viewProduct.colors) &&
-                    viewProduct.colors.length > 0) && (
-                    <div>
-                      <p
-                        className="text-xs uppercase font-semibold mb-1"
-                        style={{ color: themeColors.text }}
-                      >
-                        Colors
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {viewProduct.colors.map((c) => (
-                          <span
-                            key={c}
-                            className="px-2 py-0.5 rounded-full text-[11px]"
-                            style={{
-                              backgroundColor:
-                                themeColors.background + "60",
-                              color: themeColors.text,
-                            }}
-                          >
-                            {c}
-                          </span>
-                        ))}
+                  {Array.isArray(viewProduct.colors) &&
+                    viewProduct.colors.length > 0 && (
+                      <div>
+                        <p
+                          className="text-xs uppercase font-semibold mb-1"
+                          style={{ color: themeColors.text }}
+                        >
+                          Colors
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {viewProduct.colors.map((c) => (
+                            <span
+                              key={c}
+                              className="px-2 py-0.5 rounded-full text-[11px]"
+                              style={{
+                                backgroundColor: themeColors.background + "60",
+                                color: themeColors.text,
+                              }}
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {(Array.isArray(viewProduct.addOns) &&
-                    viewProduct.addOns.length > 0) && (
-                    <div>
-                      <p
-                        className="text-xs uppercase font-semibold mb-1"
-                        style={{ color: themeColors.text }}
-                      >
-                        Add-ons
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {viewProduct.addOns.map((a, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 rounded-full text-[11px]"
-                            style={{
-                              backgroundColor: a.isDefault
-                                ? (themeColors.success ||
-                                    themeColors.primary) + "20"
-                                : themeColors.background + "60",
-                              color: themeColors.text,
-                            }}
-                          >
-                            {a.name}{" "}
-                            {a.price
-                              ? `(+${fmtCurrency(a.price)})`
-                              : ""}
-                            {a.isDefault ? " • Default" : ""}
-                          </span>
-                        ))}
+                  {Array.isArray(viewProduct.addOns) &&
+                    viewProduct.addOns.length > 0 && (
+                      <div>
+                        <p
+                          className="text-xs uppercase font-semibold mb-1"
+                          style={{ color: themeColors.text }}
+                        >
+                          Add-ons
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {viewProduct.addOns.map((a, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-0.5 rounded-full text-[11px]"
+                              style={{
+                                backgroundColor: a.isDefault
+                                  ? (themeColors.success ||
+                                      themeColors.primary) + "20"
+                                  : themeColors.background + "60",
+                                color: themeColors.text,
+                              }}
+                            >
+                              {a.name}{" "}
+                              {a.price ? `(+${fmtCurrency(a.price)})` : ""}
+                              {a.isDefault ? " • Default" : ""}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   <div className="pt-2 text-xs opacity-70 space-y-1">
                     <p style={{ color: themeColors.text }}>

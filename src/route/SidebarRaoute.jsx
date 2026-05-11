@@ -14,6 +14,7 @@ import {
   FaStore,
   FaPlus,
   FaBriefcase,
+  FaTree,
 } from "react-icons/fa";
 
 // pages
@@ -34,6 +35,8 @@ const PayMethods = lazy(() => import("../pages/PayMethods"));
 const Vendors = lazy(() => import("../pages/Vendors"));
 const AddVendor = lazy(() => import("../pages/AddVendor"));
 const CorporateInquiries = lazy(() => import("../pages/CorporateInquiries"));
+const Orchards = lazy(() => import("../pages/Orchards"));
+
 
 const routes = [
   { path: "/dashboard", component: Dashboard, name: "Dashboard", icon: FaTachometerAlt },
@@ -55,6 +58,7 @@ const routes = [
   { path: "/blogs/add", component: AddBlog, name: "Add Blog", icon: FaPlus, hide: true },
   { path: "/blogs/edit/:id", component: AddBlog, name: "Edit Blog", icon: FaPlus, hide: true },
   { path: "/blogs/view/:id", component: ViewBlog, name: "View Blog", icon: FaPlus, hide: true },
+  { path: "/orchards", component: Orchards, name: "Orchards", icon: FaTree },
   { path: "/change-password", component: ChangePassword, name: "Change Password", icon: FaKey },
 ];
 
