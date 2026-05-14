@@ -12,6 +12,7 @@ import {
   FaTimes,
   FaUserCircle
 } from "react-icons/fa";
+import logo from "../assets/logo.png"
 
 const SidebarItem = memo(({ route, isActive, themeColors, onClose }) => {
   const IconComponent = route.icon;
@@ -19,7 +20,7 @@ const SidebarItem = memo(({ route, isActive, themeColors, onClose }) => {
   return (
     <Link
       to={route.path}
-      className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${isActive ? "shadow-md" : "hover:shadow-sm"
+      className={`flex items-center px-4 py-2 rounded-md transition-all duration-200 ${isActive ? "shadow-md" : "hover:shadow-sm"
         }`}
       style={{
         color: isActive ? themeColors.primary : themeColors.text,
@@ -102,23 +103,23 @@ const Sidebar = ({
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between h-16 px-4 border-b"
+          className="flex items-center  justify-between h-16 px-4 border-b"
           style={{ borderColor: themeColors.border }}
         >
-          <div className="flex items-center">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center mr-4 bg-white overflow-hidden">
+          <div className="flex justify-center w-full items-center">
+            <div className="w-full h-14  overflow-hidden">
               <img
-                src="sks-logo.jpg"
-                alt="Auction Here Logo"
-                className="w-full h-full object-cover"
+                src={logo}
+                alt="KaashtKart Mango Logo"
+                className="w-full h-full object-contain"
               />
             </div>
-            <h1
+            {/* <h1
               className="text-sm font-bold"
               style={{ color: themeColors.primary }}
             >
               SKS Admin
-            </h1>
+            </h1> */}
           </div>
           <button
             onClick={onClose}
@@ -134,7 +135,7 @@ const Sidebar = ({
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-6">
+        <div className="flex-1 overflow-y-auto py-2">
           <nav className="px-4 space-y-2" aria-label="Main navigation">
             {visibleRoutes.map((route) => (
               <SidebarItem

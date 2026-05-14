@@ -25,7 +25,8 @@ const colorPalettes = {
     activeDark: "#4a5568",
   },
   luxury: {
-    primary: "#1e3a8a",
+    // primary: "#1e3a8a",
+    primary: "#F2B705",
     secondary: "#374151",
     accent: "#b45309",
     success: "#047857",

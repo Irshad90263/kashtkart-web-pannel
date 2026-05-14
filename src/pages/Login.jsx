@@ -5,6 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
 import { useNavigate } from "react-router-dom";
 import { adminLogin } from "../apis/auth";
+import logo from "../assets/logo.png"
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -79,9 +80,9 @@ const Login = () => {
       >
         {/* Branding Section */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-white shadow">
+          <div className="w-full h-20 mx-auto mb-4 flex items-center justify-center">
             <img
-              src="sks-logo.jpg"
+              src={logo}
               alt="SKS Logo"
               className="w-full h-full object-contain"
             />
@@ -89,9 +90,11 @@ const Login = () => {
 
           <h1
             className="text-3xl font-bold mb-2"
-            style={{ color: themeColors.primary }}
+            // style={{ color: themeColors.primary }}
+            style={{ color: "#028F22" }}
           >
-            SKS Laddu
+            KaashtKart Mango 
+            {/* 🥭 */}
           </h1>
 
           <p
@@ -123,8 +126,8 @@ const Login = () => {
             <label
               htmlFor="adminId"
               className="block mb-2 text-sm font-medium"
-              style={{ color: themeColors.text }}
-            >
+              // style={{ color: themeColors.text }}
+              style={{ color: "#028F22" }}            >
               Admin ID
             </label>
             <input
@@ -150,7 +153,8 @@ const Login = () => {
             <label
               htmlFor="password"
               className="block mb-2 text-sm font-medium"
-              style={{ color: themeColors.text }}
+              // style={{ color: themeColors.text }}
+              style={{ color: "#028F22" }}
             >
               Password
             </label>
@@ -178,7 +182,8 @@ const Login = () => {
             disabled={isLoading}
             className="w-full py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
             style={{
-              backgroundColor: themeColors.primary,
+              // backgroundColor: themeColors.primary,
+              backgroundColor: "#028F22",
               color: themeColors.onPrimary,
             }}
           >

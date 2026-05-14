@@ -81,7 +81,7 @@ const SettingsModal = ({
         {/* Close Button - Circular */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center hover:rotate-90 transition-all duration-300 border"
+          className="absolute cursor-pointer top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center hover:rotate-90 transition-all duration-300 border"
           style={{
             color: themeColors.textSecondary,
             backgroundColor: themeColors.background,
@@ -114,7 +114,7 @@ const SettingsModal = ({
         {/* Settings Sections */}
         <div className="space-y-4">
           {/* Theme Section */}
-          <div>
+          {/* <div>
             <label
               className="flex items-center gap-2 text-xs font-medium mb-2"
               style={{ color: themeColors.text }}
@@ -152,7 +152,7 @@ const SettingsModal = ({
                 <span className="text-xs font-medium">Dark</span>
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* Font Section */}
           <div>
@@ -213,7 +213,7 @@ const SettingsModal = ({
                   <button
                     key={paletteKey}
                     onClick={() => changePalette(paletteKey)}
-                    className={`flex flex-col items-center p-2 rounded-lg border transition-all duration-200 group ${palette === paletteKey ? 'ring-1' : ''
+                    className={`flex cursor-pointer flex-col items-center p-2 rounded-lg border transition-all duration-200 group ${palette === paletteKey ? 'ring-1' : ''
                       }`}
                     style={{
                       backgroundColor: palette === paletteKey ? themeColors.primary : themeColors.background,
@@ -241,7 +241,7 @@ const SettingsModal = ({
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="flex-1 p-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 border"
+              className="flex-1 p-2 cursor-pointer rounded-lg font-medium transition-all duration-200 hover:opacity-80 border"
               style={{
                 backgroundColor: themeColors.background,
                 color: themeColors.text,
@@ -252,7 +252,7 @@ const SettingsModal = ({
             </button>
             <button
               onClick={onClose}
-              className="flex-1 p-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+              className="flex-1 p-2 cursor-pointer rounded-lg font-medium transition-all duration-200 hover:opacity-80"
               style={{
                 backgroundColor: themeColors.primary,
                 color: themeColors.onPrimary,
@@ -311,7 +311,7 @@ const Header = memo(({
           {/* Settings Button */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2 rounded-md border hover:scale-110 hover:rotate-45 transition-all duration-300 group"
+            className="p-2 cursor-pointer rounded-md border transition-all duration-300 group"
             style={{
               backgroundColor: themeColors.background,
               color: themeColors.text,
@@ -324,7 +324,7 @@ const Header = memo(({
           </button>
 
           {/* Quick Theme Toggle */}
-          <button
+          {/* <button
             onClick={toggleTheme}
             className="p-2 rounded-md border hover:scale-110 transition-all duration-300 group"
             style={{
@@ -340,7 +340,7 @@ const Header = memo(({
             ) : (
               <FaMoon className="text-sm group-hover:rotate-180 transition-transform duration-300" />
             )}
-          </button>
+          </button> */}
         </div>
       </header>
 

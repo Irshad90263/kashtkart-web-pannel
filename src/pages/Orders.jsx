@@ -18,6 +18,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { FaFileInvoice, FaTimes, FaDownload } from "react-icons/fa";
+import logo from "../assets/logo.png";
 
 const fmtDateTime = (iso) =>
   iso
@@ -220,14 +221,22 @@ function Orders() {
 
     if (!newStatus || newStatus === order.status) return;
 
+    let confirmTitle = "Change order status?";
+    let confirmText = `Order ${order._id} status will be changed from "${order.status}" to "${newStatus}".`;
+    
+    if (newStatus === "cancelled") {
+      confirmTitle = "Cancel this Order?";
+      confirmText = `This will cancel the order in the database and also cancel any active shipping (Shiprocket/Delhivery). This action cannot be undone!`;
+    }
+
     const result = await Swal.fire({
-      title: "Change order status?",
-      text: `Order ${order._id} status will be changed from "${order.status}" to "${newStatus}".`,
-      icon: "question",
+      title: confirmTitle,
+      text: confirmText,
+      icon: newStatus === "cancelled" ? "warning" : "question",
       showCancelButton: true,
-      confirmButtonColor: "#2563eb",
+      confirmButtonColor: newStatus === "cancelled" ? "#ef4444" : "#2563eb",
       cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, update",
+      confirmButtonText: newStatus === "cancelled" ? "Yes, cancel it" : "Yes, update",
     });
 
     if (!result.isConfirmed) return;
@@ -280,13 +289,16 @@ function Orders() {
           });
         } catch (shiprocketError) {
           console.error("Shiprocket creation failed:", shiprocketError);
-          // Don't revert status, just show warning
-          setSuccess("Order confirmed but Shiprocket creation failed. You can create it manually.");
+          const shiprocketMsg =
+            shiprocketError?.response?.data?.error ||
+            shiprocketError?.response?.data?.message ||
+            shiprocketError?.message ||
+            "Shiprocket creation failed. You can try creating it manually.";
+          setError(shiprocketMsg);
           Swal.fire({
-            icon: "warning",
-            title: "Partial Success",
-            text: "Order confirmed but Shiprocket creation failed. You can create it manually.",
-            timer: 3000,
+            icon: "error",
+            title: "Shiprocket Error",
+            text: shiprocketMsg,
           });
         } finally {
           setShiprocketLoading(false);
@@ -302,7 +314,11 @@ function Orders() {
         });
       }
     } catch (e) {
-      const msg = e?.response?.data?.message || e?.message || "Failed to update order status.";
+      const msg =
+        e?.response?.data?.error ||
+        e?.response?.data?.message ||
+        e?.message ||
+        "Failed to update order status.";
       setError(msg);
       Swal.fire({
         icon: "error",
@@ -347,7 +363,7 @@ function Orders() {
 
     // Attempt to add logo using fetch (more reliable for dataURL conversion)
     try {
-      const response = await fetch("/sks-logo.jpg");
+      const response = await fetch(logo);
       const blob = await response.blob();
       const logoBase64 = await new Promise((resolve) => {
         const reader = new FileReader();
@@ -356,20 +372,20 @@ function Orders() {
       });
       
       // Draw circular background
-      doc.setFillColor(255, 255, 255);
-      doc.circle(27.5, 22.5, 12.5, 'F');
+      // doc.setFillColor(255, 255, 255);
+      // doc.circle(27.5, 22.5, 12.5, 'F');
       
       // Add image (will be clipped by white circle visually)
       doc.addImage(logoBase64, 'JPEG', 15, 10, 25, 25);
       
       // Draw circular border
-      doc.setDrawColor(218, 165, 32);
-      doc.setLineWidth(0.5);
-      doc.circle(27.5, 22.5, 12.5, 'S');
+      // doc.setDrawColor(218, 165, 32);
+      // doc.setLineWidth(0.5);
+      // doc.circle(27.5, 22.5, 12.5, 'S');
     } catch (err) {
       doc.setFontSize(22);
       doc.setTextColor(218, 165, 32);
-      doc.text("SKS LADDU", 15, 25);
+      doc.text("KaashtKart", 15, 25);
     }
 
     doc.setFontSize(10);
@@ -389,9 +405,9 @@ function Orders() {
 
     doc.setFont("helvetica", "normal");
     doc.setTextColor(50);
-    doc.text("SKS Laddu", 15, 57);
-    doc.text("Ahirawan, Sandila, UP", 15, 62);
-    doc.text("Ph: 8467831372", 15, 67);
+    doc.text("KaashtKart", 15, 57);
+    doc.text("Lucknow, UP", 15, 62);
+    doc.text("Ph: 9336969289", 15, 67);
 
     const shipping = order.shippingAddress || {};
     
@@ -993,7 +1009,7 @@ function Orders() {
               {/* Invoice Top */}
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <img src="/sks-logo.jpg" alt="SKS Logo" className="h-12 w-12 rounded-full object-cover mb-1" />
+                  <img src={logo} alt="Logo" className="h-12  object-cover mb-1" />
                   <p className="text-[9px] font-bold opacity-30 tracking-widest uppercase">Official Invoice</p>
                 </div>
                 <div className="text-right">
