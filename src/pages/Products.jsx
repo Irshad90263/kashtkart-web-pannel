@@ -12,6 +12,7 @@ import {
   toggleProductStatus,
 } from "../apis/products";
 import { getVendorList } from "../apis/vendor";
+import Pagination from "../components/Pagination";
 import {
   FaBoxOpen,
   FaPlus,
@@ -83,6 +84,13 @@ export default function Products() {
   const [viewProduct, setViewProduct] = useState(null);
   const [vendorDropdownOpen, setVendorDropdownOpen] = useState(false);
 
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+
   // ---------- fetchers ----------
   const fetchCategories = async () => {
     try {
@@ -104,12 +112,15 @@ export default function Products() {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
       setError("");
-      const list = await listProducts(statusFilter);
-      setProducts(list);
+      const res = await listProducts(statusFilter, page, 10, search);
+      setProducts(res.products || []);
+      if (res.pagination) {
+        setPagination(res.pagination);
+      }
     } catch (e) {
       setError(
         e?.response?.data?.message || e?.message || "Failed to load products.",
@@ -122,8 +133,19 @@ export default function Products() {
   useEffect(() => {
     fetchCategories();
     fetchVendors();
-    fetchProducts();
-  }, [statusFilter]);
+  }, []);
+
+  // Fetch products when status filter or search changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProducts(1);
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [statusFilter, search]);
+
+  const handlePageChange = (newPage) => {
+    fetchProducts(newPage);
+  };
 
   // categoryId -> name map
   const categoryMap = useMemo(() => {
@@ -274,7 +296,7 @@ export default function Products() {
       setSuccess("");
       await deleteProduct(idOrSlug);
       setSuccess("Product deleted successfully.");
-      await fetchProducts();
+      await fetchProducts(pagination.page);
       Swal.fire({
         icon: "success",
         title: "Deleted",
@@ -425,7 +447,7 @@ export default function Products() {
 
       resetForm();
       setIsModalOpen(false);
-      await fetchProducts();
+      await fetchProducts(editing ? pagination.page : 1);
     } catch (e) {
       const msg =
         e?.response?.data?.message || e?.message || "Failed to save product.";
@@ -439,25 +461,6 @@ export default function Products() {
       setSaving(false);
     }
   };
-
-  const filteredProducts = useMemo(() => {
-    if (!search.trim()) return products;
-    const q = search.toLowerCase();
-    return products.filter((p) => {
-      const name = (p.name || "").toLowerCase();
-      const desc = (p.description || "").toLowerCase();
-      const catName =
-        p.category?.name ||
-        p.categoryId?.name ||
-        categoryMap[p.categoryId] ||
-        "";
-      return (
-        name.includes(q) ||
-        desc.includes(q) ||
-        String(catName).toLowerCase().includes(q)
-      );
-    });
-  }, [products, search, categoryMap]);
 
   const getFinalPrice = (p) => {
     if (typeof p.finalPrice === "number") return p.finalPrice;
@@ -683,7 +686,7 @@ export default function Products() {
             {viewMode === "table" ? "Product List" : "Product Cards"}
           </span>
           <span className="text-xs opacity-70">
-            {filteredProducts.length} of {products.length} shown
+            {products.length} of {pagination.total} total
           </span>
         </h2>
 
@@ -729,7 +732,7 @@ export default function Products() {
                       Loading products...
                     </td>
                   </tr>
-                ) : filteredProducts.length === 0 ? (
+                ) : products.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
@@ -740,7 +743,7 @@ export default function Products() {
                     </td>
                   </tr>
                 ) : (
-                  filteredProducts.map((p) => {
+                  products.map((p) => {
                     const catName =
                       p.category?.name ||
                       p.categoryId?.name ||
@@ -883,25 +886,24 @@ export default function Products() {
             </table>
           </div>
         ) : (
-          // CARD VIEW
           <div>
             {loading ? (
-              <p
-                className="text-sm text-center py-6"
+              <div
+                className="py-12 text-center text-sm"
                 style={{ color: themeColors.text }}
               >
                 Loading products...
-              </p>
-            ) : filteredProducts.length === 0 ? (
-              <p
-                className="text-sm text-center py-6"
+              </div>
+            ) : products.length === 0 ? (
+              <div
+                className="py-12 text-center text-sm"
                 style={{ color: themeColors.text }}
               >
                 No products found.
-              </p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredProducts.map((p) => {
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {products.map((p) => {
                   const catName =
                     p.category?.name ||
                     p.categoryId?.name ||
@@ -1144,11 +1146,20 @@ export default function Products() {
             )}
           </div>
         )}
+
+        {!loading && pagination.totalPages > 1 && (
+          <div className="mt-6 flex justify-center">
+            <Pagination
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
       </div>
 
       {/* Add / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-10 bg-black/40">
           <div
             className="w-full max-w-3xl mx-4 rounded-2xl shadow-lg border max-h-[90vh] overflow-hidden flex flex-col"
             style={{
@@ -1668,7 +1679,7 @@ export default function Products() {
 
       {/* FULL VIEW MODAL */}
       {viewProduct && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-10 bg-black/40">
           <div
             className="w-full max-w-4xl mx-4 rounded-2xl shadow-lg border max-h-[90vh] overflow-hidden flex flex-col"
             style={{

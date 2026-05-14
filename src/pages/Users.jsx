@@ -49,7 +49,7 @@ export default function Users() {
         try {
             setLoading(true);
             setError("");
-            const res = await getAllUsers(page, 10);
+            const res = await getAllUsers(page, 10, search);
             setUsers(res.users || []);
             if (res.pagination) {
                 setPagination(res.pagination);
@@ -67,24 +67,19 @@ export default function Users() {
         }
     };
 
+    // Fetch users when search changes (debounced)
     useEffect(() => {
-        fetchUsers(1);
-    }, []);
+        const timer = setTimeout(() => {
+            fetchUsers(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [search]);
 
     const handlePageChange = (newPage) => {
         fetchUsers(newPage);
     };
 
-    const filteredUsers = useMemo(() => {
-        if (!search.trim()) return users;
-        const q = search.toLowerCase();
-        return users.filter((u) => {
-            const fullName = `${u.firstName || ""} ${u.lastName || ""}`.toLowerCase();
-            const email = (u.email || "").toLowerCase();
-            const phone = (u.phone || "").toLowerCase();
-            return fullName.includes(q) || email.includes(q) || phone.includes(q);
-        });
-    }, [users, search]);
+
 
     const handleViewDetails = (user) => {
         setSelectedUser(user);
@@ -140,7 +135,7 @@ export default function Users() {
 
             {/* Main Table Container */}
             <div
-                className="rounded-3xl border overflow-hidden shadow-sm backdrop-blur-sm"
+                className="rounded-md border overflow-hidden shadow-sm backdrop-blur-sm"
                 style={{
                     backgroundColor: themeColors.surface + '80',
                     borderColor: themeColors.border
@@ -167,7 +162,7 @@ export default function Users() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredUsers.length === 0 ? (
+                            ) : users.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-4 opacity-40">
@@ -177,7 +172,7 @@ export default function Users() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredUsers.map((user) => (
+                                users.map((user) => (
                                     <tr
                                         key={user._id}
                                         className="group hover:bg-black/5 transition-colors cursor-default"
@@ -219,10 +214,11 @@ export default function Users() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span
-                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
                                                 style={{
                                                     backgroundColor: user.isActive ? '#10b98115' : '#ef444415',
-                                                    color: user.isActive ? '#10b981' : '#ef4444'
+                                                    color: user.isActive ? '#10b981' : '#ef4444',
+                                                    border: user.isActive ? '1px solid #10b981' : '1px solid #ef4444'
                                                 }}
                                             >
                                                 {user.isActive ? <FaCheckCircle /> : <FaTimesCircle />}

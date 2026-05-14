@@ -3,9 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
 import { useAuth } from "../context/AuthContext";
-import { listOrders, updateOrderStatus } from "../apis/orders";
+import {
+  listOrders,
+  updateOrderStatus,
+  createShippingOrderApi,
+  trackOrder,
+} from "../apis/orders";
 import Pagination from "../components/Pagination";
-import { createShiprocketOrder, getShiprocketTracking } from "../apis/shiprocket";
+import { getShiprocketTracking } from "../apis/shiprocket";
 import {
   FaShoppingCart,
   FaSyncAlt,
@@ -23,15 +28,15 @@ import logo from "../assets/logo.png";
 const fmtDateTime = (iso) =>
   iso
     ? new Date(iso).toLocaleString("en-IN", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    })
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
     : "-";
 
 const fmtCurrency = (n) =>
   typeof n === "number"
     ? `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-    : n ?? "-";
+    : (n ?? "-");
 
 // Possible order statuses (assumption)
 const STATUS_OPTIONS = [
@@ -60,7 +65,7 @@ function Orders() {
     page: 1,
     limit: 10,
     total: 0,
-    totalPages: 0
+    totalPages: 0,
   });
 
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -78,9 +83,7 @@ function Orders() {
       }
     } catch (e) {
       setError(
-        e?.response?.data?.message ||
-        e?.message ||
-        "Failed to load orders."
+        e?.response?.data?.message || e?.message || "Failed to load orders.",
       );
     } finally {
       setLoading(false);
@@ -95,23 +98,29 @@ function Orders() {
     fetchOrders(newPage);
   };
 
-  const handleCreateShiprocketOrder = async (order) => {
+  const handleCreateShippingOrder = async (order) => {
     if (!isLoggedIn) {
       setError("You must be logged in as admin.");
       return;
     }
 
-    if (order.shiprocketCreated) {
-      setError("Shiprocket order already created for this order.");
+    const provider = order.selectedCourier || "shiprocket";
+    const shippingCreated =
+      order.shippingDetails?.created || order.shiprocketCreated;
+
+    if (shippingCreated) {
+      setError(
+        `Shipping order already created for this order via ${provider}.`,
+      );
       return;
     }
 
     const result = await Swal.fire({
-      title: "Create Shiprocket Order?",
-      text: `Create shipping order for ${order._id}?`,
+      title: `Create ${provider.charAt(0).toUpperCase() + provider.slice(1)} Order?`,
+      text: `Generate shipping label for Order #${order._id.slice(-6)}?`,
       icon: "question",
       showCancelButton: true,
-      confirmButtonColor: "#2563eb",
+      confirmButtonColor: provider === "delhivery" ? "#e11d48" : "#2563eb",
       cancelButtonColor: "#6b7280",
       confirmButtonText: "Yes, create",
     });
@@ -123,91 +132,84 @@ function Orders() {
       setError("");
       setSuccess("");
 
-      const response = await createShiprocketOrder(order._id || order.id);
+      const response = await createShippingOrderApi(order._id || order.id);
+      const shipping = response.shipping || {};
 
-      // Update local state with Shiprocket data
+      // Update local state with Normalized Shipping Data
       setOrders((prev) =>
         prev.map((o) =>
           (o._id || o.id) === (order._id || order.id)
             ? {
-              ...o,
-              shiprocketCreated: true,
-              shiprocketOrderId: response.shiprocketOrderId,
-              shipmentId: response.shipmentId,
-              awbCode: response.awbCode || "",
-              courierName: response.courierName || "",
-              status: "confirmed" // Auto confirm when Shiprocket order is created
-            }
-            : o
-        )
+                ...o,
+                shippingDetails: shipping,
+                shiprocketCreated: shipping.provider === "shiprocket",
+                shiprocketOrderId: shipping.providerOrderId,
+                shipmentId: shipping.shipmentId,
+                awbCode: shipping.awbCode || "",
+                courierName: shipping.courierName || "",
+                status: "confirmed",
+              }
+            : o,
+        ),
       );
 
-      // Update order status to confirmed on server
-      try {
-        await updateOrderStatus(order._id || order.id, "confirmed");
-      } catch (statusError) {
-        console.error("Failed to update status to confirmed:", statusError);
-      }
-
-      setSuccess("Shiprocket order created and order confirmed successfully.");
+      setSuccess(`${shipping.provider} order created successfully.`);
       Swal.fire({
         icon: "success",
-        title: "Created & Confirmed",
-        text: "Shiprocket order created and order confirmed successfully.",
+        title: "Success!",
+        text: `${shipping.provider} order created and confirmed.`,
         timer: 2000,
         showConfirmButton: false,
       });
     } catch (e) {
-      if (e.response?.status === 401 || e.message === "Token expired") {
-        setError("Session expired. Please login again.");
-        setTimeout(() => window.location.href = "/login", 2000);
-      } else {
-        const msg =
-          e?.response?.data?.message ||
-          e?.message ||
-          "Failed to create Shiprocket order.";
-        setError(msg);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: msg,
-        });
-      }
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Failed to create shipping order.";
+      setError(msg);
+      Swal.fire({ icon: "error", title: "Error", text: msg });
     } finally {
       setShiprocketLoading(false);
     }
   };
 
   const handleTrackOrder = async (order) => {
-    if (!order.awbCode) {
+    const awb = order.shippingDetails?.awbCode || order.awbCode;
+    const courier =
+      order.shippingDetails?.courierName ||
+      order.courierName ||
+      order.selectedCourier ||
+      "N/A";
+
+    if (!awb) {
       setError("No AWB code available for tracking.");
       return;
     }
 
     try {
       setShiprocketLoading(true);
-      const trackingData = await getShiprocketTracking(order.awbCode);
+      const trackingData = await trackOrder(awb);
 
       Swal.fire({
         title: "Order Tracking",
         html: `
           <div class="text-left">
-            <p><strong>AWB Code:</strong> ${order.awbCode}</p>
-            <p><strong>Courier:</strong> ${order.courierName || 'N/A'}</p>
-            <p><strong>Status:</strong> ${trackingData.status || 'N/A'}</p>
-            <p><strong>Location:</strong> ${trackingData.location || 'N/A'}</p>
+            <p><strong>AWB Code:</strong> ${awb}</p>
+            <p><strong>Courier:</strong> ${courier}</p>
+            <p><strong>Status:</strong> ${trackingData.status || "N/A"}</p>
+            <p><strong>Location:</strong> ${trackingData.location || "N/A"}</p>
           </div>
         `,
         icon: "info",
         confirmButtonText: "Close",
       });
     } catch (e) {
-      const msg = e?.response?.data?.message || e?.message || "Failed to get tracking info.";
-      Swal.fire({
-        icon: "error",
-        title: "Tracking Error",
-        text: msg,
-      });
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Failed to get tracking info.";
+      setError(msg);
+      Swal.fire({ icon: "error", title: "Tracking Error", text: msg });
     } finally {
       setShiprocketLoading(false);
     }
@@ -223,7 +225,7 @@ function Orders() {
 
     let confirmTitle = "Change order status?";
     let confirmText = `Order ${order._id} status will be changed from "${order.status}" to "${newStatus}".`;
-    
+
     if (newStatus === "cancelled") {
       confirmTitle = "Cancel this Order?";
       confirmText = `This will cancel the order in the database and also cancel any active shipping (Shiprocket/Delhivery). This action cannot be undone!`;
@@ -236,7 +238,8 @@ function Orders() {
       showCancelButton: true,
       confirmButtonColor: newStatus === "cancelled" ? "#ef4444" : "#2563eb",
       cancelButtonColor: "#6b7280",
-      confirmButtonText: newStatus === "cancelled" ? "Yes, cancel it" : "Yes, update",
+      confirmButtonText:
+        newStatus === "cancelled" ? "Yes, cancel it" : "Yes, update",
     });
 
     if (!result.isConfirmed) return;
@@ -253,8 +256,8 @@ function Orders() {
         prev.map((o) =>
           (o._id || o.id) === (order._id || order.id)
             ? { ...o, status: newStatus }
-            : o
-        )
+            : o,
+        ),
       );
 
       // Auto-create Shiprocket when status = "confirmed" for all orders
@@ -268,18 +271,20 @@ function Orders() {
             prev.map((o) =>
               (o._id || o.id) === (order._id || order.id)
                 ? {
-                  ...o,
-                  shiprocketCreated: true,
-                  shiprocketOrderId: response.shiprocketOrderId,
-                  shipmentId: response.shipmentId,
-                  awbCode: response.awbCode || "",
-                  courierName: response.courierName || "",
-                }
-                : o
-            )
+                    ...o,
+                    shiprocketCreated: true,
+                    shiprocketOrderId: response.shiprocketOrderId,
+                    shipmentId: response.shipmentId,
+                    awbCode: response.awbCode || "",
+                    courierName: response.courierName || "",
+                  }
+                : o,
+            ),
           );
 
-          setSuccess("Order confirmed and Shiprocket order created successfully!");
+          setSuccess(
+            "Order confirmed and Shiprocket order created successfully!",
+          );
           Swal.fire({
             icon: "success",
             title: "Success!",
@@ -370,14 +375,14 @@ function Orders() {
         reader.onloadend = () => resolve(reader.result);
         reader.readAsDataURL(blob);
       });
-      
+
       // Draw circular background
       // doc.setFillColor(255, 255, 255);
       // doc.circle(27.5, 22.5, 12.5, 'F');
-      
+
       // Add image (will be clipped by white circle visually)
-      doc.addImage(logoBase64, 'JPEG', 15, 10, 25, 25);
-      
+      doc.addImage(logoBase64, "JPEG", 15, 10, 25, 25);
+
       // Draw circular border
       // doc.setDrawColor(218, 165, 32);
       // doc.setLineWidth(0.5);
@@ -410,34 +415,34 @@ function Orders() {
     doc.text("Ph: 9336969289", 15, 67);
 
     const shipping = order.shippingAddress || {};
-    
+
     // Bill To section with proper text wrapping
     let billToY = 57;
     const maxWidth = 50; // Maximum width for text wrapping
     const lineHeight = 5;
-    
+
     // Name
     doc.text(shipping.name || "-", 140, billToY);
     billToY += lineHeight;
-    
+
     // Phone
     doc.text(shipping.phone || "-", 140, billToY);
     billToY += lineHeight;
-    
+
     // Address Line 1 with wrapping
     if (shipping.addressLine1) {
       const addr1Lines = doc.splitTextToSize(shipping.addressLine1, maxWidth);
       doc.text(addr1Lines, 140, billToY);
       billToY += addr1Lines.length * lineHeight;
     }
-    
+
     // Address Line 2 with wrapping (if exists)
     if (shipping.addressLine2) {
       const addr2Lines = doc.splitTextToSize(shipping.addressLine2, maxWidth);
       doc.text(addr2Lines, 140, billToY);
       billToY += addr2Lines.length * lineHeight;
     }
-    
+
     // City, State, Pincode
     const cityStatePin = `${shipping.city || ""}, ${shipping.state || ""} - ${shipping.pincode || ""}`;
     const cityLines = doc.splitTextToSize(cityStatePin, maxWidth);
@@ -447,7 +452,7 @@ function Orders() {
     const fmtPDF = (n) =>
       typeof n === "number"
         ? `Rs. ${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-        : n ?? "-";
+        : (n ?? "-");
 
     // Items table
     const tableRows = (order.items || []).map((item) => [
@@ -462,18 +467,23 @@ function Orders() {
       head: [["PRODUCT", "QTY", "RATE", "PRICE"]],
       body: tableRows,
       theme: "grid",
-      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold", lineWidth: 0.1 },
+      headStyles: {
+        fillColor: [255, 255, 255],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+        lineWidth: 0.1,
+      },
       styles: { fontSize: 9, halign: "left", cellPadding: 3 },
       columnStyles: {
         0: { cellWidth: 80 },
         1: { halign: "center", cellWidth: 20 },
         2: { halign: "right", cellWidth: 35 },
-        3: { halign: "right", cellWidth: 35 }
+        3: { halign: "right", cellWidth: 35 },
       },
       margin: { left: 15, right: 15 },
     });
 
-    let finalY = (doc).lastAutoTable.finalY + 10;
+    let finalY = doc.lastAutoTable.finalY + 10;
     doc.setFontSize(10);
     doc.setTextColor(80);
     doc.setFont("helvetica", "normal");
@@ -523,8 +533,7 @@ function Orders() {
       case "confirmed":
         return {
           ...base,
-          backgroundColor:
-            (themeColors.success || themeColors.primary) + "20",
+          backgroundColor: (themeColors.success || themeColors.primary) + "20",
           color: themeColors.success || themeColors.primary,
         };
       case "shipped":
@@ -555,10 +564,7 @@ function Orders() {
   };
 
   return (
-    <div
-      className="space-y-6"
-      style={{ fontFamily: currentFont.family }}
-    >
+    <div className="space-y-6" style={{ fontFamily: currentFont.family }}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
@@ -652,13 +658,10 @@ function Orders() {
               className="p-3 rounded-lg text-sm border"
               style={{
                 backgroundColor:
-                  (themeColors.success || themeColors.primary) +
-                  "15",
+                  (themeColors.success || themeColors.primary) + "15",
                 borderColor:
-                  (themeColors.success || themeColors.primary) +
-                  "50",
-                color:
-                  themeColors.success || themeColors.primary,
+                  (themeColors.success || themeColors.primary) + "50",
+                color: themeColors.success || themeColors.primary,
               }}
             >
               {success}
@@ -697,22 +700,27 @@ function Orders() {
                 }}
               >
                 {[
-                  "Order ID",
-                  "Customer",
-                  "Items",
-                  "Amount",
-                  "Status",
-                  "Shiprocket",
-                  "Payment",
-                  "Created",
-                  "Invoice"
+                  { label: "Order ID", width: "100px" },
+                  { label: "Customer", width: "220px" },
+                  { label: "Items", width: "250px" },
+                  { label: "Amount", width: "120px" },
+                  { label: "Status", width: "140px" },
+                  { label: "Logistics", width: "180px" },
+                  { label: "Payment", width: "130px" },
+                  { label: "Created", width: "130px" },
+                  { label: "Invoice", width: "100px" },
                 ].map((h) => (
                   <th
-                    key={h}
-                    className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide"
-                    style={{ color: themeColors.text }}
+                    key={h.label}
+                    className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider sticky top-0"
+                    style={{
+                      color: themeColors.text,
+                      backgroundColor: themeColors.background,
+                      minWidth: h.width,
+                      zIndex: 10,
+                    }}
                   >
-                    {h}
+                    {h.label}
                   </th>
                 ))}
               </tr>
@@ -748,8 +756,9 @@ function Orders() {
                   const itemsText = (o.items || [])
                     .map(
                       (it) =>
-                        `${it.productName || it.product?.name || "Item"} x${it.quantity || 1
-                        } (${it.size || "-"}, ${it.color || "-"})`
+                        `${it.productName || it.product?.name || "Item"} x${
+                          it.quantity || 1
+                        } (${it.size || "-"}, ${it.color || "-"})`,
                     )
                     .join(", ");
 
@@ -764,50 +773,60 @@ function Orders() {
                       </td>
 
                       {/* Customer */}
-                      <td
-                        className="px-4 py-2 text-xs"
-                        style={{ color: themeColors.text }}
-                      >
-                        <div className="font-medium text-sm">
+                      <td className="px-4 py-3">
+                        <div
+                          className="font-bold text-sm"
+                          style={{ color: themeColors.text }}
+                        >
                           {shipping.name || "-"}
                         </div>
-                        <div className="opacity-70">
-                          {shipping.phone || "-"}
-                        </div>
-                        <div className="opacity-60">
-                          {shipping.city}, {shipping.state}
-                        </div>
-                        <div className="opacity-60">
-                          User ID: {o.userId || "-"}
+                        <div
+                          className="flex flex-col gap-0.5 text-[11px] opacity-70"
+                          style={{ color: themeColors.text }}
+                        >
+                          <span>{shipping.phone || "-"}</span>
+                          <span>
+                            {shipping.city}, {shipping.state}
+                          </span>
+                          <span className="text-[10px] font-mono mt-0.5 border-t border-black/5 pt-0.5">
+                            UID: {o.userId || "-"}
+                          </span>
                         </div>
                       </td>
 
                       {/* Items */}
-                      <td
-                        className="px-4 py-2 text-xs"
-                        style={{ color: themeColors.text }}
-                      >
-                        <div className="line-clamp-3">{itemsText}</div>
+                      <td className="px-4 py-3">
+                        <div
+                          className="text-[11px] line-clamp-3 leading-snug"
+                          style={{ color: themeColors.text }}
+                        >
+                          {itemsText}
+                        </div>
                         {o.notes && (
                           <div
-                            className="mt-1 text-[11px] italic opacity-70"
+                            className="mt-1.5 p-1 rounded bg-black/5 text-[10px] italic"
                             style={{ color: themeColors.text }}
                           >
-                            Note: {o.notes}
+                            <span className="font-bold uppercase opacity-50 block text-[8px]">
+                              Note:
+                            </span>
+                            {o.notes}
                           </div>
                         )}
                       </td>
 
                       {/* Amounts */}
-                      <td
-                        className="px-4 py-2 text-xs"
-                        style={{ color: themeColors.text }}
-                      >
-                        <div>
-                          Subtotal: {fmtCurrency(o.subtotal)}
-                        </div>
-                        <div className="font-semibold">
-                          Total: {fmtCurrency(o.total)}
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] opacity-50">
+                            Sub: {fmtCurrency(o.subtotal)}
+                          </span>
+                          <span
+                            className="text-sm font-black"
+                            style={{ color: themeColors.primary }}
+                          >
+                            {fmtCurrency(o.total)}
+                          </span>
                         </div>
                       </td>
 
@@ -839,104 +858,154 @@ function Orders() {
                         </div>
                       </td>
 
-                      {/* Shiprocket */}
-                      <td className="px-4 py-2 text-xs">
-                        {o.shiprocketCreated ? (
-                          <div className="space-y-1">
+                      {/* Logistics / Shipping */}
+                      <td className="px-4 py-3">
+                        {o.shippingDetails?.created || o.shiprocketCreated ? (
+                          <div className="flex flex-col gap-1">
                             <div
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold"
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase"
                               style={{
-                                backgroundColor: (themeColors.success || themeColors.primary) + "20",
-                                color: themeColors.success || themeColors.primary,
+                                backgroundColor:
+                                  o.shippingDetails?.shippingStatus ===
+                                    "Cancelled" ||
+                                  o.shippingStatus === "Cancelled"
+                                    ? "#6b728020"
+                                    : (o.selectedCourier === "delhivery"
+                                        ? "#e11d48"
+                                        : themeColors.success ||
+                                          themeColors.primary) + "15",
+                                color:
+                                  o.shippingDetails?.shippingStatus ===
+                                    "Cancelled" ||
+                                  o.shippingStatus === "Cancelled"
+                                    ? "#6b7280"
+                                    : o.selectedCourier === "delhivery"
+                                      ? "#e11d48"
+                                      : themeColors.success ||
+                                        themeColors.primary,
+                                border: `1px solid ${
+                                  o.shippingDetails?.shippingStatus ===
+                                    "Cancelled" ||
+                                  o.shippingStatus === "Cancelled"
+                                    ? "#6b7280"
+                                    : o.selectedCourier === "delhivery"
+                                      ? "#e11d48"
+                                      : themeColors.success ||
+                                        themeColors.primary
+                                }30`,
+                                textDecoration:
+                                  o.shippingDetails?.shippingStatus ===
+                                    "Cancelled" ||
+                                  o.shippingStatus === "Cancelled"
+                                    ? "line-through"
+                                    : "none",
                               }}
                             >
-                              ✓ Created
+                              {o.shippingDetails?.shippingStatus ===
+                                "Cancelled" || o.shippingStatus === "Cancelled"
+                                ? "✕"
+                                : "✓"}{" "}
+                              {o.selectedCourier || "Shipping"}{" "}
+                              {o.shippingDetails?.shippingStatus ===
+                                "Cancelled" || o.shippingStatus === "Cancelled"
+                                ? "(CANCELLED)"
+                                : ""}
                             </div>
-                            {o.shiprocketOrderId && (
-                              <div className="text-[10px] opacity-70">
-                                ID: {o.shiprocketOrderId}
-                              </div>
-                            )}
-                            {o.awbCode && (
-                              <div className="text-[10px] opacity-70">
-                                AWB: {o.awbCode}
-                              </div>
-                            )}
-                            {o.courierName && (
-                              <div className="text-[10px] opacity-70">
-                                {o.courierName}
-                              </div>
-                            )}
-                            <div className="flex gap-1 mt-1">
-                              {o.awbCode && (
-                                <button
-                                  onClick={() => handleTrackOrder(o)}
-                                  disabled={shiprocketLoading}
-                                  className="px-2 py-1 rounded text-[10px] flex items-center gap-1"
-                                  style={{
-                                    backgroundColor: themeColors.primary + "20",
-                                    color: themeColors.primary,
-                                  }}
-                                  title="Track Order"
-                                >
-                                  <FaEye size={8} />
-                                  Track
-                                </button>
+                            <div className="text-[10px] space-y-0.5 opacity-60 leading-tight">
+                              {(o.shippingDetails?.providerOrderId ||
+                                o.shiprocketOrderId) && (
+                                <div className="font-mono">
+                                  ID:{" "}
+                                  {o.shippingDetails?.providerOrderId ||
+                                    o.shiprocketOrderId}
+                                </div>
+                              )}
+                              {(o.shippingDetails?.awbCode || o.awbCode) && (
+                                <div className="font-bold">
+                                  AWB: {o.shippingDetails?.awbCode || o.awbCode}
+                                </div>
+                              )}
+                              {(o.shippingDetails?.courierName ||
+                                o.courierName) && (
+                                <div className="italic">
+                                  {o.shippingDetails?.courierName ||
+                                    o.courierName}
+                                </div>
                               )}
                             </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-1">
-                            <div
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold"
-                              style={{
-                                backgroundColor: themeColors.background + "80",
-                                color: themeColors.text,
-                              }}
-                            >
-                              Not Created
-                            </div>
-                            {!o.shiprocketCreated && (
+                            {(o.shippingDetails?.awbCode || o.awbCode) && (
                               <button
-                                onClick={() => handleCreateShiprocketOrder(o)}
-                                disabled={!isLoggedIn || shiprocketLoading}
-                                className="px-2 py-1 rounded text-[10px] flex items-center gap-1 mt-1"
-                                style={{
-                                  backgroundColor: themeColors.primary + "20",
-                                  color: themeColors.primary,
-                                }}
-                                title="Create Shiprocket Order"
+                                onClick={() => handleTrackOrder(o)}
+                                disabled={shiprocketLoading}
+                                className="mt-1 px-2 py-0.5 rounded bg-black/5 hover:bg-black/10 text-[10px] font-bold flex items-center justify-center gap-1"
+                                style={{ color: themeColors.text }}
                               >
-                                <FaTruck size={8} />
-                                Create
+                                <FaEye size={8} /> TRACK
                               </button>
                             )}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-bold opacity-40 uppercase">
+                                Method
+                              </span>
+                              <span
+                                className="text-[10px] font-bold"
+                                style={{ color: themeColors.text }}
+                              >
+                                {o.selectedCourier?.toUpperCase() ||
+                                  "NOT SELECTED"}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleCreateShippingOrder(o)}
+                              disabled={!isLoggedIn || shiprocketLoading}
+                              className="px-2 py-1 rounded text-[10px] font-bold flex items-center justify-center gap-1 border transition-all hover:scale-105"
+                              style={{
+                                backgroundColor:
+                                  o.selectedCourier === "delhivery"
+                                    ? "#e11d4815"
+                                    : "rgba(59, 130, 246, 0.1)",
+                                color:
+                                  o.selectedCourier === "delhivery"
+                                    ? "#e11d48"
+                                    : "#3b82f6",
+                                borderColor:
+                                  o.selectedCourier === "delhivery"
+                                    ? "#e11d4830"
+                                    : "rgba(59, 130, 246, 0.2)",
+                              }}
+                            >
+                              <FaTruck size={10} /> CREATE{" "}
+                              {o.selectedCourier?.toUpperCase()}
+                            </button>
                           </div>
                         )}
                       </td>
 
                       {/* Payment */}
-                      <td
-                        className="px-4 py-2 text-xs"
-                        style={{ color: themeColors.text }}
-                      >
-                        <div className="mb-1">
-                          Method: {o.paymentMethod || "-"}
-                        </div>
-                        <div>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[10px] font-bold opacity-50 uppercase tracking-tighter">
+                            Method: {o.paymentMethod || "-"}
+                          </div>
                           <span
-                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold"
+                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase"
                             style={{
                               backgroundColor:
                                 o.paymentStatus === "paid"
                                   ? (themeColors.success ||
-                                    themeColors.primary) + "20"
+                                      themeColors.primary) + "15"
                                   : themeColors.background + "80",
                               color:
                                 o.paymentStatus === "paid"
-                                  ? themeColors.success ||
-                                  themeColors.primary
+                                  ? themeColors.success || themeColors.primary
                                   : themeColors.text,
+                              border:
+                                o.paymentStatus === "paid"
+                                  ? `1px solid ${themeColors.success || themeColors.primary}30`
+                                  : "none",
                             }}
                           >
                             {o.paymentStatus || "pending"}
@@ -963,7 +1032,7 @@ function Orders() {
                           style={{
                             backgroundColor: themeColors.primary + "15",
                             color: themeColors.primary,
-                            border: `1px solid ${themeColors.primary}30`
+                            border: `1px solid ${themeColors.primary}30`,
                           }}
                         >
                           <FaFileInvoice />
@@ -990,8 +1059,14 @@ function Orders() {
             style={{ backgroundColor: themeColors.surface }}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: themeColors.border }}>
-              <h3 className="text-xl font-bold flex items-center gap-2" style={{ color: themeColors.text }}>
+            <div
+              className="flex items-center justify-between p-6 border-b"
+              style={{ borderColor: themeColors.border }}
+            >
+              <h3
+                className="text-xl font-bold flex items-center gap-2"
+                style={{ color: themeColors.text }}
+              >
                 <FaFileInvoice className="text-yellow-500" />
                 Order Invoice
               </h3>
@@ -1009,29 +1084,80 @@ function Orders() {
               {/* Invoice Top */}
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <img src={logo} alt="Logo" className="h-12  object-cover mb-1" />
-                  <p className="text-[9px] font-bold opacity-30 tracking-widest uppercase">Official Invoice</p>
+                  <img
+                    src={logo}
+                    alt="Logo"
+                    className="h-12  object-cover mb-1"
+                  />
+                  <p className="text-[9px] font-bold opacity-30 tracking-widest uppercase">
+                    Official Invoice
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] opacity-60" style={{ color: themeColors.text }}>Date: {fmtDateTime(selectedOrder.createdAt).split(",")[0]}</p>
-                  <p className="text-sm font-bold" style={{ color: themeColors.text }}>
-                    Invoice: <span className="text-yellow-600">#{selectedOrder._id.slice(-6).toUpperCase()}</span>
+                  <p
+                    className="text-[11px] opacity-60"
+                    style={{ color: themeColors.text }}
+                  >
+                    Date: {fmtDateTime(selectedOrder.createdAt).split(",")[0]}
+                  </p>
+                  <p
+                    className="text-sm font-bold"
+                    style={{ color: themeColors.text }}
+                  >
+                    Invoice:{" "}
+                    <span className="text-yellow-600">
+                      #{selectedOrder._id.slice(-6).toUpperCase()}
+                    </span>
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="p-2.5 rounded-xl bg-gray-50/50 border border-gray-100">
-                  <h4 className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-0.5" style={{ color: themeColors.text }}>BILL FROM:</h4>
-                  <p className="font-bold text-sm" style={{ color: themeColors.text }}>SKS Laddu</p>
-                  <p className="text-[11px] opacity-70" style={{ color: themeColors.text }}>Ahirawan, Sandila, UP</p>
+                  <h4
+                    className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-0.5"
+                    style={{ color: themeColors.text }}
+                  >
+                    BILL FROM:
+                  </h4>
+                  <p
+                    className="font-bold text-sm"
+                    style={{ color: themeColors.text }}
+                  >
+                    SKS Laddu
+                  </p>
+                  <p
+                    className="text-[11px] opacity-70"
+                    style={{ color: themeColors.text }}
+                  >
+                    Ahirawan, Sandila, UP
+                  </p>
                 </div>
                 <div className="text-right p-2.5 rounded-xl bg-gray-50/50 border border-gray-100">
-                  <h4 className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-0.5" style={{ color: themeColors.text }}>BILL TO:</h4>
-                  <p className="font-bold text-sm" style={{ color: themeColors.text }}>{selectedOrder.shippingAddress?.name || "-"}</p>
-                  <p className="text-[11px] opacity-70" style={{ color: themeColors.text }}>{selectedOrder.shippingAddress?.phone || "-"}</p>
-                  <p className="text-[10px] opacity-70 leading-tight" style={{ color: themeColors.text }}>
-                    {selectedOrder.shippingAddress?.addressLine1}<br />
+                  <h4
+                    className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-0.5"
+                    style={{ color: themeColors.text }}
+                  >
+                    BILL TO:
+                  </h4>
+                  <p
+                    className="font-bold text-sm"
+                    style={{ color: themeColors.text }}
+                  >
+                    {selectedOrder.shippingAddress?.name || "-"}
+                  </p>
+                  <p
+                    className="text-[11px] opacity-70"
+                    style={{ color: themeColors.text }}
+                  >
+                    {selectedOrder.shippingAddress?.phone || "-"}
+                  </p>
+                  <p
+                    className="text-[10px] opacity-70 leading-tight"
+                    style={{ color: themeColors.text }}
+                  >
+                    {selectedOrder.shippingAddress?.addressLine1}
+                    <br />
                     {selectedOrder.shippingAddress?.city}
                   </p>
                 </div>
@@ -1041,20 +1167,53 @@ function Orders() {
               <div className="mb-2 overflow-hidden rounded-xl border border-gray-100">
                 <table className="w-full text-[11px]">
                   <thead>
-                    <tr className="bg-gray-50" style={{ borderColor: themeColors.border }}>
-                      <th className="text-left py-2 px-3 opacity-70 font-bold">PRODUCT</th>
-                      <th className="text-center py-2 px-2 opacity-70 font-bold">QTY</th>
-                      <th className="text-right py-2 px-2 opacity-70 font-bold">RATE</th>
-                      <th className="text-right py-2 px-3 opacity-70 font-bold">PRICE</th>
+                    <tr
+                      className="bg-gray-50"
+                      style={{ borderColor: themeColors.border }}
+                    >
+                      <th className="text-left py-2 px-3 opacity-70 font-bold">
+                        PRODUCT
+                      </th>
+                      <th className="text-center py-2 px-2 opacity-70 font-bold">
+                        QTY
+                      </th>
+                      <th className="text-right py-2 px-2 opacity-70 font-bold">
+                        RATE
+                      </th>
+                      <th className="text-right py-2 px-3 opacity-70 font-bold">
+                        PRICE
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {(selectedOrder.items || []).map((item, idx) => (
                       <tr key={idx}>
-                        <td className="py-2 px-3 font-semibold" style={{ color: themeColors.text }}>{item.productName || item.product?.name || "Item"}</td>
-                        <td className="py-2 px-2 text-center" style={{ color: themeColors.text }}>{item.quantity}</td>
-                        <td className="py-2 px-2 text-right" style={{ color: themeColors.text }}>{fmtCurrency(item.productPrice || 0)}</td>
-                        <td className="py-2 px-3 text-right font-bold" style={{ color: themeColors.text }}>{fmtCurrency((item.productPrice || 0) * (item.quantity || 1))}</td>
+                        <td
+                          className="py-2 px-3 font-semibold"
+                          style={{ color: themeColors.text }}
+                        >
+                          {item.productName || item.product?.name || "Item"}
+                        </td>
+                        <td
+                          className="py-2 px-2 text-center"
+                          style={{ color: themeColors.text }}
+                        >
+                          {item.quantity}
+                        </td>
+                        <td
+                          className="py-2 px-2 text-right"
+                          style={{ color: themeColors.text }}
+                        >
+                          {fmtCurrency(item.productPrice || 0)}
+                        </td>
+                        <td
+                          className="py-2 px-3 text-right font-bold"
+                          style={{ color: themeColors.text }}
+                        >
+                          {fmtCurrency(
+                            (item.productPrice || 0) * (item.quantity || 1),
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1063,7 +1222,10 @@ function Orders() {
             </div>
 
             {/* Modal Footer - Fixed Summary & Actions */}
-            <div className="p-4 border-t bg-gray-50/50" style={{ borderColor: themeColors.border }}>
+            <div
+              className="p-4 border-t bg-gray-50/50"
+              style={{ borderColor: themeColors.border }}
+            >
               <div className="flex justify-between items-start mb-3">
                 <div className="space-y-0.5">
                   <div className="flex justify-between w-36 text-[10px] opacity-60">
@@ -1080,7 +1242,9 @@ function Orders() {
                 <div className="space-y-0.5">
                   <div className="flex justify-between w-36 text-[10px] opacity-60">
                     <span>Shipping:</span>
-                    <span>{fmtCurrency(selectedOrder.shippingCharges || 0)}</span>
+                    <span>
+                      {fmtCurrency(selectedOrder.shippingCharges || 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between w-36 text-[10px] opacity-60">
                     <span>Handling:</span>
@@ -1091,7 +1255,9 @@ function Orders() {
 
               <div className="flex justify-between items-center">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[10px] font-bold opacity-40 uppercase">Total:</span>
+                  <span className="text-[10px] font-bold opacity-40 uppercase">
+                    Total:
+                  </span>
                   <h3 className="text-2xl font-black text-slate-900">
                     {fmtCurrency(selectedOrder.total)}
                   </h3>

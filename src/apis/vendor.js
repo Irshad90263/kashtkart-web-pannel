@@ -1,7 +1,7 @@
 import http from "./http";
 
-export const getAllVendors = async () => {
-    const res = await http.get("/venders");
+export const getAllVendors = async (page = 1, limit = 10, search = "") => {
+    const res = await http.get(`/venders?page=${page}&limit=${limit}&search=${search}`);
     return res.data;
 };
 

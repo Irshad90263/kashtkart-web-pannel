@@ -635,7 +635,7 @@ export default function Offers() {
 
       {/* Add / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
           <div
             className="w-full max-w-xl mx-4 rounded-2xl shadow-lg border max-h-[90vh] overflow-hidden flex flex-col"
             style={{

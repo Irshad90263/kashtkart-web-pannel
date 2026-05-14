@@ -397,7 +397,7 @@ export default function ReviewVideos() {
 
       {/* Upload Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
           <div
             className="w-full max-w-md mx-4 rounded-2xl shadow-lg border"
             style={{

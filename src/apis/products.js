@@ -2,11 +2,10 @@
 import http from "./http";
 
 // Public: list products – GET /products
-export const listProducts = async (status = 'active') => {
-  const params = status ? { status } : {};
+export const listProducts = async (status = 'active', page = 1, limit = 10, search = '') => {
+  const params = { status, page, limit, search };
   const { data } = await http.get("/products", { params });
-  // could be array ya { products: [...] }
-  return Array.isArray(data) ? data : data.products || [];
+  return data;
 };
 
 // Admin: create product – POST /products (multipart/form-data)

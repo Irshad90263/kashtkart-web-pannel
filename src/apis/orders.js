@@ -26,3 +26,9 @@ export const trackOrder = async (awbCode) => {
   const { data } = await http.get(`/orders/track/${awbCode}`);
   return data.trackingData || data;
 };
+
+// POST /shipping/create-order/:orderId (manual generic creation)
+export const createShippingOrderApi = async (orderId) => {
+  const { data } = await http.post(`/shipping/create-order/${orderId}`);
+  return data;
+};

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
 import { getAllVendors, deleteVendor, toggleVendorStatus } from "../apis/vendor";
+import Pagination from "../components/Pagination";
 import {
     FaStore,
     FaSearch,
@@ -39,12 +40,21 @@ export default function Vendors() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [selectedVendor, setSelectedVendor] = useState(null);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0
+    });
 
-    const fetchVendors = async () => {
+    const fetchVendors = async (page = 1) => {
         try {
             setLoading(true);
-            const res = await getAllVendors();
+            const res = await getAllVendors(page, 10, search);
             setVendors(res.vendors || []);
+            if (res.pagination) {
+                setPagination(res.pagination);
+            }
         } catch (e) {
             const msg = e?.response?.data?.message || e?.message || "Failed to load vendors.";
             toast.error(msg);
@@ -54,20 +64,17 @@ export default function Vendors() {
     };
 
     useEffect(() => {
-        fetchVendors();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchVendors(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [search]);
 
-    const filteredVendors = useMemo(() => {
-        if (!search.trim()) return vendors;
-        const q = search.toLowerCase();
-        return vendors.filter((v) => {
-            const name = (v.name || "").toLowerCase();
-            const email = (v.contactDetails?.email || "").toLowerCase();
-            const phone = (v.contactDetails?.phoneNumber || "").toLowerCase();
-            const orchard = (v.orchardAddress?.address || "").toLowerCase();
-            return name.includes(q) || email.includes(q) || phone.includes(q) || orchard.includes(q);
-        });
-    }, [vendors, search]);
+    const handlePageChange = (newPage) => {
+        fetchVendors(newPage);
+    };
+
+
 
     const handleDelete = async (id) => {
         const result = await Swal.fire({
@@ -84,7 +91,7 @@ export default function Vendors() {
             try {
                 await deleteVendor(id);
                 toast.success("Vendor deleted successfully");
-                fetchVendors();
+                fetchVendors(pagination.page);
             } catch (e) {
                 toast.error("Failed to delete vendor");
             }
@@ -95,7 +102,7 @@ export default function Vendors() {
         try {
             await toggleVendorStatus(id, !currentStatus);
             toast.success(`Vendor ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
-            fetchVendors();
+            fetchVendors(pagination.page);
         } catch (e) {
             toast.error("Failed to update status");
         }
@@ -135,7 +142,7 @@ export default function Vendors() {
                         />
                     </div>
                     <button
-                        onClick={fetchVendors}
+                        onClick={() => fetchVendors(pagination.page)}
                         className="p-2.5 rounded-xl border transition-all hover:scale-105 active:scale-95"
                         style={{
                             backgroundColor: themeColors.surface,
@@ -185,7 +192,7 @@ export default function Vendors() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredVendors.length === 0 ? (
+                            ) : vendors.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-4 opacity-40">
@@ -195,7 +202,7 @@ export default function Vendors() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredVendors.map((vendor) => (
+                                vendors.map((vendor) => (
                                     <tr key={vendor._id} className="group hover:bg-black/5 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -304,6 +311,10 @@ export default function Vendors() {
                     </table>
                 </div>
             </div>
+
+            {!loading && pagination.totalPages > 1 && (
+                <Pagination pagination={pagination} onPageChange={handlePageChange} />
+            )}
 
             <style jsx>{`
                 .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
