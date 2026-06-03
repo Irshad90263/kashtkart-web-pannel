@@ -15,6 +15,7 @@ import {
   FaPlus,
   FaBriefcase,
   FaTree,
+  FaCalendarCheck,
 } from "react-icons/fa";
 
 // pages
@@ -36,6 +37,7 @@ const Vendors = lazy(() => import("../pages/Vendors"));
 const AddVendor = lazy(() => import("../pages/AddVendor"));
 const CorporateInquiries = lazy(() => import("../pages/CorporateInquiries"));
 const Orchards = lazy(() => import("../pages/Orchards"));
+const Bookings = lazy(() => import("../pages/Bookings"));
 
 
 const routes = [
@@ -50,6 +52,7 @@ const routes = [
   { path: "/products", component: Products, name: "Products", icon: FaBox },
   // { path: "/offers", component: Offers, name: "Offers", icon: FaCoins },
   { path: "/orders", component: Orders, name: "Orders", icon: FaShoppingCart },
+  { path: "/bookings", component: Bookings, name: "Bookings", icon: FaCalendarCheck },
   { path: "/enquiries", component: Enquiries, name: "Enquiries", icon: FaEnvelopeOpenText },
   { path: "/sliders", component: Sliders, name: "Sliders", icon: FaImages },
   { path: "/review-videos", component: ReviewVideos, name: "Review Videos", icon: FaVideo },
