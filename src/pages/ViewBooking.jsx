@@ -5,6 +5,7 @@ import { useFont } from "../context/FontContext";
 import {
   getBookingById,
   updateBookingStatus,
+  trackShiprocketOrderApi
 } from "../apis/booking";
 import {
   FaArrowLeft,
@@ -28,12 +29,13 @@ const fmtDateTime = (iso) =>
 
 const STATUS_OPTIONS = [
   "pending",
+  "order placed",
   "confirmed",
-  "dispatched",
+  "shipped",
   "delivered",
   "cancelled",
 ];
-const PAYMENT_STATUS_OPTIONS = ["pending", "paid", "failed"];
+const PAYMENT_STATUS_OPTIONS = ["pending", "advance paid", "paid", "failed"];
 
 export default function ViewBooking() {
   const { id } = useParams();
@@ -121,6 +123,33 @@ export default function ViewBooking() {
     }
   };
 
+  const handleLiveTrack = async (awbCode) => {
+    try {
+      Swal.fire({
+        title: 'Fetching tracking details...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      const data = await trackShiprocketOrderApi(awbCode);
+      Swal.fire({
+        title: 'Live Tracking Status',
+        html: `
+          <div style="text-align: left; font-size: 0.9rem; line-height: 1.5; margin-top: 10px;">
+            <p><strong>Status:</strong> <span style="color: #16a34a;">${data.status}</span></p>
+            <p><strong>Location:</strong> ${data.location}</p>
+            <p><strong>Last Update:</strong> ${data.lastUpdate}</p>
+          </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#1e293b'
+      });
+    } catch (e) {
+      Swal.fire('Error', 'Failed to fetch tracking details. Please try again.', 'error');
+    }
+  };
+
   const Spinner = ({ size = "w-4 h-4", color = "border-blue-500" }) => (
     <div
       className={`${size} border-2 ${color} border-t-transparent rounded-full animate-spin`}
@@ -139,6 +168,13 @@ export default function ViewBooking() {
     };
 
     switch (status) {
+      case "order placed":
+        return {
+          ...base,
+          backgroundColor: "#e0e7ff",
+          color: "#3730a3",
+          border: "1px solid #3730a3",
+        };
       case "confirmed":
         return {
           ...base,
@@ -146,7 +182,7 @@ export default function ViewBooking() {
           color: "#166534",
           border: "1px solid #166534",
         };
-      case "dispatched":
+      case "shipped":
         return {
           ...base,
           backgroundColor: "#fef9c3",
@@ -191,6 +227,8 @@ export default function ViewBooking() {
     switch (status) {
       case "paid":
         return { ...base, backgroundColor: "#dcfce7", color: "#166534", border: "1px solid #166534" };
+      case "advance paid":
+        return { ...base, backgroundColor: "#ffedd5", color: "#c2410c", border: "1px solid #c2410c" };
       case "failed":
         return { ...base, backgroundColor: "#fee2e2", color: "#991b1b", border: "1px solid #991b1b" };
       default: // pending
@@ -335,6 +373,50 @@ export default function ViewBooking() {
               )}
             </div>
           </div>
+
+          {/* Shipping & Tracking Info Card */}
+          {booking.awbCode && (
+            <div
+              className="bg-white rounded-xl shadow-sm border p-6 space-y-4"
+              style={{ borderColor: themeColors.border }}
+            >
+              <h3 className="text-sm font-bold uppercase tracking-wider text-green-700 flex items-center gap-2 border-b pb-3" style={{ borderColor: themeColors.border }}>
+                <FaMapMarkerAlt /> Shiprocket Tracking
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-700">
+                <div>
+                  <span className="font-bold text-gray-400 block mb-0.5">AWB CODE</span>
+                  <span className="font-bold text-blue-600 text-sm tracking-wider">{booking.awbCode}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-gray-400 block mb-0.5">COURIER PARTNER</span>
+                  <span className="font-bold text-gray-800 text-sm">{booking.courierName || "Shiprocket"}</span>
+                </div>
+                {booking.shiprocketOrderId && (
+                  <div>
+                    <span className="font-bold text-gray-400 block mb-0.5">SHIPROCKET ORDER ID</span>
+                    <span className="font-semibold text-gray-800">{booking.shiprocketOrderId}</span>
+                  </div>
+                )}
+                <div className="md:col-span-2 pt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleLiveTrack(booking.awbCode)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition"
+                  >
+                    Live Track Order
+                  </button>
+                  <a
+                    href={`https://shiprocket.co/tracking/${booking.awbCode}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition"
+                  >
+                    Track on Shiprocket Website
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Special Instructions & Extra Info */}
           <div
@@ -486,7 +568,7 @@ export default function ViewBooking() {
                       }`}
                     >
                       {statusUpdating === `status-${opt}` && (
-                        <Spinner size="w-3 h-3" color="border-white" />
+                        <Spinner size="w-3 h-3" color={booking.status === opt ? "border-white" : "border-green-600"} />
                       )}
                       {opt.toUpperCase()}
                     </button>
@@ -494,27 +576,16 @@ export default function ViewBooking() {
                 </div>
               </div>
 
-              {/* Payment Status Actions */}
+              {/* Payment Status (Read-Only) */}
               <div className="space-y-2">
-                <span className="font-bold text-gray-400 text-xs block">UPDATE PAYMENT STATUS</span>
+                <span className="font-bold text-gray-400 text-xs block">PAYMENT STATUS</span>
                 <div className="flex flex-wrap gap-2">
-                  {PAYMENT_STATUS_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => handlePaymentStatusChange(opt)}
-                      disabled={!!statusUpdating}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
-                        booking.paymentStatus === opt
-                          ? "bg-green-700 text-white border-green-700 shadow-sm"
-                          : "bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-200"
-                      }`}
+                    <div
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border bg-gray-100 text-gray-600 border-gray-200 "
+                      title="Payment status is automated and cannot be changed manually"
                     >
-                      {statusUpdating === `pay-${opt}` && (
-                        <Spinner size="w-3 h-3" color="border-white" />
-                      )}
-                      {opt.toUpperCase()}
-                    </button>
-                  ))}
+                      {booking.paymentStatus?.toUpperCase()}
+                    </div>
                 </div>
               </div>
             </div>

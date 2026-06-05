@@ -15,6 +15,12 @@ export const deleteBooking = async (id) => {
     return res.data;
 };
 
+// track order
+export const trackShiprocketOrderApi = async (awbCode) => {
+  const res = await http.get(`/shiprocket/track/${awbCode}`);
+  return res.data;
+};
+
 export const exportBookingsExcel = async () => {
     const res = await http.get(`/bookings/admin/export/excel`, {
         responseType: 'blob'
