@@ -1,44 +1,30 @@
-// src/pages/Categories.jsx
+// src/pages/ProductCategories.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
 import { useAuth } from "../context/AuthContext";
 import {
-  getVarieties as getCategories,
-  createVariety as createCategory,
-  updateVariety as updateCategory,
-  deleteVariety as deleteCategory,
-} from "../apis/varieties";
-import { getCategories as getProductCategories } from "../apis/categories";
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from "../apis/categories";
 import {
-  FaBox,
+  FaTags,
   FaPlus,
   FaEdit,
   FaTrash,
   FaSyncAlt,
   FaSearch,
-  FaToggleOn,
-  FaToggleOff,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 
-// ---------- helpers ----------
-const fmtNum = (n) =>
-  typeof n === "number" ? n.toLocaleString("en-IN") : (n ?? "-");
-
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString("en-IN") : "-";
 
-const fmtCurrency = (n) =>
-  typeof n === "number"
-    ? `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-    : (n ?? "-");
-
 const emptyForm = {
   name: "",
-  slug: "",
-  category: "",
   description: "",
   image: null,
   imagePreview: "",
@@ -46,7 +32,7 @@ const emptyForm = {
   imageRemoved: false,
 };
 
-export default function Categories() {
+export default function ProductCategories() {
   const { themeColors } = useTheme();
   const { currentFont } = useFont();
   const { isLoggedIn } = useAuth();
@@ -60,34 +46,19 @@ export default function Categories() {
   const [editing, setEditing] = useState(null); // category being edited
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("active"); // 'active' or 'inactive'
-  const [productCategories, setProductCategories] = useState([]);
-
-  const fetchProductCategoriesList = async () => {
-    try {
-      const res = await getProductCategories();
-      const list = Array.isArray(res) ? res : res.categories || [];
-      setProductCategories(list);
-    } catch (e) {
-      console.error("Failed to load product categories:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchProductCategoriesList();
-  }, []);
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await getCategories(statusFilter);
-      // res could be array or { categories: [] }
+      const res = await getCategories();
       const list = Array.isArray(res) ? res : res.categories || [];
       setCategories(list);
     } catch (e) {
       setError(
-        e?.response?.data?.message || e?.message || "Failed to load varieties.",
+        e?.response?.data?.message ||
+          e?.message ||
+          "Failed to load categories.",
       );
     } finally {
       setLoading(false);
@@ -96,7 +67,7 @@ export default function Categories() {
 
   useEffect(() => {
     fetchCategories();
-  }, [statusFilter]);
+  }, []);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -111,54 +82,47 @@ export default function Categories() {
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
     setError("");
     setSuccess("");
   };
 
-  // Image change handler
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
-      const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         setError("Please upload a valid image (JPEG, PNG, WebP)");
         return;
       }
-
-      // Validate file size (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
         setError("Image size should be less than 2MB");
         return;
       }
-
-      setForm((prev) => ({
+      setForm(prev => ({
         ...prev,
         image: file,
         imagePreview: URL.createObjectURL(file),
-        imageUrl: "", // Clear existing URL if new image selected
+        imageUrl: ""
       }));
       setError("");
     }
   };
 
-  // Remove image
   const handleRemoveImage = () => {
-    setForm((prev) => ({
+    setForm(prev => ({
       ...prev,
       image: null,
       imagePreview: "",
       imageUrl: "",
-      imageRemoved: true,
+      imageRemoved: true
     }));
   };
 
-  // Cleanup preview URL on unmount
   useEffect(() => {
     return () => {
       if (form.imagePreview) {
@@ -171,12 +135,11 @@ export default function Categories() {
     setEditing(cat);
     setForm({
       name: cat.name || "",
-      slug: cat.slug || "",
-      category: cat.category?._id || cat.category || "",
       description: cat.description || "",
       image: null,
-      imagePreview: cat.image?.url || "", // assuming API returns { image: { url } }
+      imagePreview: cat.image?.url || "",
       imageUrl: cat.image?.url || "",
+      imageRemoved: false
     });
     setSuccess("");
     setError("");
@@ -185,18 +148,18 @@ export default function Categories() {
 
   const handleDelete = async (cat) => {
     if (!isLoggedIn) {
-      setError("You must be logged in as admin to delete varieties.");
+      setError("You must be logged in as admin to delete categories.");
       return;
     }
 
-    const idOrSlug = cat.slug || cat._id || cat.id;
-    if (!idOrSlug) {
-      setError("Cannot delete this variety (missing identifier).");
+    const id = cat._id || cat.id;
+    if (!id) {
+      setError("Cannot delete this category (missing identifier).");
       return;
     }
 
     const result = await Swal.fire({
-      title: `Delete variety "${cat.name}"?`,
+      title: `Delete category "${cat.name}"?`,
       text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
@@ -211,92 +174,26 @@ export default function Categories() {
       setSaving(true);
       setError("");
       setSuccess("");
-      await deleteCategory(idOrSlug);
-      setSuccess("Variety deleted successfully.");
-      await fetchCategories();
+      await deleteCategory(id);
+      setSuccess("Category deleted successfully.");
+
       if (editing && editing._id === cat._id) {
         resetForm();
       }
+
       Swal.fire({
         icon: "success",
         title: "Deleted",
-        text: "Variety deleted successfully.",
+        text: "Category deleted successfully.",
         timer: 1500,
         showConfirmButton: false,
       });
-    } catch (e) {
-      const msg =
-        e?.response?.data?.message || e?.message || "Failed to delete variety.";
-      setError(msg);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: msg,
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleToggleStatus = async (cat) => {
-    if (!isLoggedIn) {
-      setError("You must be logged in as admin to change status.");
-      return;
-    }
-
-    const idOrSlug = cat.slug || cat._id || cat.id;
-    if (!idOrSlug) {
-      setError("Cannot update this variety (missing identifier).");
-      return;
-    }
-
-    const newStatus = !cat.isActive;
-
-    try {
-      setSaving(true);
-      setError("");
-      setSuccess("");
-
-      await updateCategory(idOrSlug, { isActive: newStatus });
-
-      // Remove from current view if status doesn't match filter
-      if (
-        (statusFilter === "active" && !newStatus) ||
-        (statusFilter === "inactive" && newStatus)
-      ) {
-        setCategories((prev) =>
-          prev.filter(
-            (c) =>
-              (c._id || c.id || c.slug) !== (cat._id || cat.id || cat.slug),
-          ),
-        );
-      } else {
-        // Update status in current view
-        setCategories((prev) =>
-          prev.map((c) =>
-            (c._id || c.id || c.slug) === (cat._id || cat.id || cat.slug)
-              ? { ...c, isActive: newStatus }
-              : c,
-          ),
-        );
-      }
-
-      setSuccess(
-        `Variety ${newStatus ? "activated" : "deactivated"} successfully.`,
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: newStatus ? "Activated" : "Deactivated",
-        text: `Variety ${newStatus ? "activated" : "deactivated"} successfully.`,
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      await fetchCategories();
     } catch (e) {
       const msg =
         e?.response?.data?.message ||
         e?.message ||
-        "Failed to update variety status.";
+        "Failed to delete category.";
       setError(msg);
       Swal.fire({
         icon: "error",
@@ -312,17 +209,12 @@ export default function Categories() {
     e.preventDefault();
 
     if (!isLoggedIn) {
-      setError("You must be logged in as admin to manage varieties.");
+      setError("You must be logged in as admin to manage categories.");
       return;
     }
 
     if (!form.name.trim()) {
-      setError("Variety name is required.");
-      return;
-    }
-
-    if (!form.category) {
-      setError("Category is required.");
+      setError("Category name is required.");
       return;
     }
 
@@ -331,72 +223,48 @@ export default function Categories() {
       setError("");
       setSuccess("");
 
-      let payload; // 🔥 Dynamic payload - FormData ya JSON
-
-      // 🔥 Check if we have a new image file
+      let payload;
       if (form.image) {
-        // Use FormData for file upload
         payload = new FormData();
-        payload.append("name", form.name.trim());
-        if (form.slug.trim()) payload.append("slug", form.slug.trim());
-        payload.append("category", form.category);
-        if (form.description.trim())
-          payload.append("description", form.description.trim());
-        payload.append("image", form.image);
-
-        // If editing and we want to remove existing image
+        payload.append('name', form.name.trim());
+        payload.append('description', form.description.trim());
+        payload.append('image', form.image);
         if (editing && !form.imageUrl && !form.imagePreview) {
-          payload.append("removeImage", "true");
+          payload.append('removeImage', 'true');
         }
       } else {
-        // Use JSON for normal data (no image file)
         payload = {
           name: form.name.trim(),
-          ...(form.slug.trim() && { slug: form.slug.trim() }),
-          category: form.category,
           description: form.description.trim(),
         };
-
-        // If editing and we want to keep existing image
         if (editing && form.imageUrl) {
           payload.imageUrl = form.imageUrl;
         }
-
-        // If editing and we want to remove image
-        if (
-          editing &&
-          !form.imageUrl &&
-          !form.imagePreview &&
-          form.imageRemoved
-        ) {
+        if (editing && !form.imageUrl && !form.imagePreview && form.imageRemoved) {
           payload.removeImage = true;
         }
       }
 
-      // 🔥 Use smart API functions (jo auto-detect karte hain)
       if (editing) {
-        const idOrSlug = editing.slug || editing._id || editing.id;
-        if (!idOrSlug)
-          throw new Error("Missing variety identifier for update.");
+        const id = editing._id || editing.id;
+        if (!id) throw new Error("Missing category identifier for update.");
 
-        // ✅ Same updateCategory function - yeh khud detect karega ki payload FormData hai ya JSON
-        await updateCategory(idOrSlug, payload);
-        setSuccess("Variety updated successfully.");
+        await updateCategory(id, payload);
+        setSuccess("Category updated successfully.");
         Swal.fire({
           icon: "success",
           title: "Updated",
-          text: "Variety updated successfully.",
+          text: "Category updated successfully.",
           timer: 1500,
           showConfirmButton: false,
         });
       } else {
-        // ✅ Same createCategory function - yeh khud detect karega ki payload FormData hai ya JSON
         await createCategory(payload);
-        setSuccess("Variety created successfully.");
+        setSuccess("Category created successfully.");
         Swal.fire({
           icon: "success",
           title: "Created",
-          text: "Variety created successfully.",
+          text: "Category created successfully.",
           timer: 1500,
           showConfirmButton: false,
         });
@@ -407,7 +275,7 @@ export default function Categories() {
       await fetchCategories();
     } catch (e) {
       const msg =
-        e?.response?.data?.message || e?.message || "Failed to save variety.";
+        e?.response?.data?.message || e?.message || "Failed to save category.";
       setError(msg);
       Swal.fire({
         icon: "error",
@@ -424,9 +292,8 @@ export default function Categories() {
     const q = search.toLowerCase();
     return categories.filter((c) => {
       const name = (c.name || "").toLowerCase();
-      const slug = (c.slug || "").toLowerCase();
       const desc = (c.description || "").toLowerCase();
-      return name.includes(q) || slug.includes(q) || desc.includes(q);
+      return name.includes(q) || desc.includes(q);
     });
   }, [categories, search]);
 
@@ -439,14 +306,14 @@ export default function Categories() {
             className="text-2xl font-bold flex items-center gap-2"
             style={{ color: themeColors.text }}
           >
-            <FaBox />
-            Varieties
+            <FaTags />
+            Categories
           </h1>
           <p
             className="text-sm mt-1 opacity-75"
             style={{ color: themeColors.text }}
           >
-            Manage product varieties for your e-commerce store.
+            Manage main categories for your e-commerce store.
           </p>
         </div>
 
@@ -460,7 +327,7 @@ export default function Categories() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search varieties..."
+              placeholder="Search categories..."
               className="pl-8 pr-3 py-2 rounded-lg border text-sm"
               style={{
                 backgroundColor: themeColors.surface,
@@ -468,52 +335,6 @@ export default function Categories() {
                 color: themeColors.text,
               }}
             />
-          </div>
-
-          {/* Status Filter Toggle */}
-          <div
-            className="flex items-center gap-1 p-1 rounded-lg border"
-            style={{
-              backgroundColor: themeColors.surface,
-              borderColor: themeColors.border,
-            }}
-          >
-            <button
-              onClick={() => setStatusFilter("active")}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                statusFilter === "active" ? "" : "opacity-60"
-              }`}
-              style={{
-                backgroundColor:
-                  statusFilter === "active"
-                    ? themeColors.primary
-                    : "transparent",
-                color:
-                  statusFilter === "active"
-                    ? themeColors.onPrimary
-                    : themeColors.text,
-              }}
-            >
-              Active
-            </button>
-            <button
-              onClick={() => setStatusFilter("inactive")}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                statusFilter === "inactive" ? "" : "opacity-60"
-              }`}
-              style={{
-                backgroundColor:
-                  statusFilter === "inactive"
-                    ? themeColors.primary
-                    : "transparent",
-                color:
-                  statusFilter === "inactive"
-                    ? themeColors.onPrimary
-                    : themeColors.text,
-              }}
-            >
-              Inactive
-            </button>
           </div>
 
           <button
@@ -538,10 +359,10 @@ export default function Categories() {
               backgroundColor: themeColors.primary,
               color: themeColors.onPrimary,
             }}
-            title={isLoggedIn ? "Add new variety" : "Login as admin to add"}
+            title={isLoggedIn ? "Add new category" : "Login as admin to add"}
           >
             <FaPlus />
-            Add Variety
+            Add Category
           </button>
         </div>
       </div>
@@ -586,14 +407,14 @@ export default function Categories() {
                 color: themeColors.warning || themeColors.primary,
               }}
             >
-              You are viewing public varieties. Login as admin to add, edit, or
-              delete varieties.
+              You are viewing categories. Login as admin to add, edit, or delete
+              categories.
             </div>
           )}
         </div>
       )}
 
-      {/* Table only (form ab modal me) */}
+      {/* Table Section */}
       <div
         className="p-6 rounded-xl border"
         style={{
@@ -606,8 +427,8 @@ export default function Categories() {
           style={{ color: themeColors.text }}
         >
           <span className="flex items-center gap-2">
-            <FaBox />
-            Variety List
+            <FaTags />
+            Category List
           </span>
           <span className="text-xs opacity-70">
             {filteredCategories.length} of {categories.length} shown
@@ -622,23 +443,17 @@ export default function Categories() {
                   backgroundColor: themeColors.background + "30",
                 }}
               >
-                {[
-                  "Name",
-                  "Category",
-                  "Slug",
-                  "Description",
-                  "Status",
-                  "Created",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide"
-                    style={{ color: themeColors.text }}
-                  >
-                    {h}
-                  </th>
-                ))}
+                {["Image", "Name", "Description", "Created At", "Actions"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: themeColors.text }}
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody
@@ -648,103 +463,70 @@ export default function Categories() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={5}
                     className="px-4 py-6 text-center text-sm"
                     style={{ color: themeColors.text }}
                   >
-                    Loading varieties...
+                    Loading categories...
                   </td>
                 </tr>
               ) : filteredCategories.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={5}
                     className="px-4 py-6 text-center text-sm"
                     style={{ color: themeColors.text }}
                   >
-                    No varieties found.
+                    No categories found.
                   </td>
                 </tr>
               ) : (
                 filteredCategories.map((cat) => (
-                  <tr key={cat._id || cat.id || cat.slug}>
+                  <tr key={cat._id || cat.id}>
+                    <td className="px-4 py-3">
+                      {cat.image?.url ? (
+                        <img
+                          src={cat.image.url}
+                          alt={cat.name}
+                          className="w-12 h-12 object-cover rounded-lg border"
+                          style={{ borderColor: themeColors.border }}
+                        />
+                      ) : (
+                        <div
+                          className="w-12 h-12 rounded-lg border flex items-center justify-center text-[10px] opacity-50"
+                          style={{ borderColor: themeColors.border, backgroundColor: themeColors.background }}
+                        >
+                          No image
+                        </div>
+                      )}
+                    </td>
                     <td
-                      className="px-4 py-2"
+                      className="px-4 py-3 font-medium"
                       style={{ color: themeColors.text }}
                     >
                       {cat.name}
                     </td>
                     <td
-                      className="px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400"
-                      style={{ color: themeColors.textPrimary }}
-                    >
-                      {cat.category?.name || cat.category || "-"}
-                    </td>
-                    <td
-                      className="px-4 py-2 text-xs"
+                      className="px-4 py-3 max-w-xs truncate"
                       style={{ color: themeColors.text }}
-                    >
-                      {cat.slug || "-"}
-                    </td>
-                    <td
-                      className="px-4 py-2 text-xs"
-                      style={{ color: themeColors.text }}
+                      title={cat.description}
                     >
                       {cat.description || "-"}
                     </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold"
-                        style={{
-                          backgroundColor: cat.isActive
-                            ? (themeColors.success || themeColors.primary) +
-                              "15"
-                            : themeColors.border,
-                          color: cat.isActive
-                            ? themeColors.success || themeColors.primary
-                            : themeColors.text,
-                        }}
-                      >
-                        {cat.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
                     <td
-                      className="px-4 py-2 text-xs"
+                      className="px-4 py-3 text-xs"
                       style={{ color: themeColors.text }}
                     >
                       {cat.createdAt ? fmtDate(cat.createdAt) : "-"}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {/* Active/Inactive Toggle Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(cat)}
-                          disabled={!isLoggedIn || saving}
-                          className="p-2 rounded-lg border text-xs disabled:opacity-40"
-                          style={{
-                            borderColor: themeColors.border,
-                            color: cat.isActive
-                              ? themeColors.warning || "#f59e0b"
-                              : themeColors.success || themeColors.primary,
-                          }}
-                          title={
-                            isLoggedIn
-                              ? cat.isActive
-                                ? "Mark as Inactive"
-                                : "Mark as Active"
-                              : "Login as admin to change status"
-                          }
-                        >
-                          {cat.isActive ? <FaToggleOn /> : <FaToggleOff />}
-                        </button>
-
                         {/* Edit Button */}
                         <button
                           type="button"
                           onClick={() => handleEdit(cat)}
                           disabled={!isLoggedIn}
-                          className="p-2 rounded-lg border text-xs disabled:opacity-40"
+                          className="p-2 rounded-lg border text-xs disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                           style={{
                             borderColor: themeColors.border,
                             color: themeColors.text,
@@ -759,7 +541,7 @@ export default function Categories() {
                           type="button"
                           onClick={() => handleDelete(cat)}
                           disabled={!isLoggedIn || saving}
-                          className="p-2 rounded-lg border text-xs disabled:opacity-40"
+                          className="p-2 rounded-lg border text-xs disabled:opacity-40 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                           style={{
                             borderColor: themeColors.border,
                             color: themeColors.danger,
@@ -798,8 +580,8 @@ export default function Categories() {
                 className="text-lg font-semibold flex items-center gap-2"
                 style={{ color: themeColors.text }}
               >
-                <FaPlus />
-                {editing ? "Edit Variety" : "Add New Variety"}
+                <FaTags />
+                {editing ? "Edit Category" : "Add New Category"}
               </h2>
               <button
                 onClick={() => {
@@ -814,8 +596,6 @@ export default function Categories() {
             </div>
 
             <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
-
-              {/* (Optional) show error inside modal */}
               {error && (
                 <div
                   className="p-2 rounded-lg text-xs border"
@@ -845,76 +625,14 @@ export default function Categories() {
                   value={form.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500"
                   style={{
                     backgroundColor: themeColors.background,
                     borderColor: themeColors.border,
                     color: themeColors.text,
                   }}
-                  placeholder="Variety Name"
+                  placeholder="Category Name"
                 />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label
-                  htmlFor="category"
-                  className="block mb-1 text-sm font-medium"
-                  style={{ color: themeColors.text }}
-                >
-                  Category <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
-                  style={{
-                    backgroundColor: themeColors.background,
-                    borderColor: themeColors.border,
-                    color: themeColors.text,
-                  }}
-                >
-                  <option value="">Select Category</option>
-                  {productCategories.map((c) => (
-                    <option key={c._id || c.id} value={c._id || c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Slug */}
-              <div>
-                <label
-                  htmlFor="slug"
-                  className="block mb-1 text-sm font-medium"
-                  style={{ color: themeColors.text }}
-                >
-                  Slug (optional)
-                </label>
-                <input
-                  id="slug"
-                  name="slug"
-                  type="text"
-                  value={form.slug}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
-                  style={{
-                    backgroundColor: themeColors.background,
-                    borderColor: themeColors.border,
-                    color: themeColors.text,
-                  }}
-                  placeholder="e.g. electronics"
-                />
-                <p
-                  className="text-xs mt-1 opacity-70"
-                  style={{ color: themeColors.text }}
-                >
-                  Leave blank to let the system generate a slug.
-                </p>
               </div>
 
               {/* Description */}
@@ -931,32 +649,29 @@ export default function Categories() {
                   name="description"
                   value={form.description}
                   onChange={handleChange}
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 resize-none"
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500"
                   style={{
                     backgroundColor: themeColors.background,
                     borderColor: themeColors.border,
                     color: themeColors.text,
                   }}
-                  placeholder="Short description for this variety..."
+                  placeholder="Describe this category..."
                 />
               </div>
 
               {/* Image Upload */}
               <div>
-                <label
-                  className="block mb-1 text-sm font-medium"
-                  style={{ color: themeColors.text }}
-                >
-                  Variety Image <span className="text-red-500">*</span>
+                <label className="block mb-1 text-sm font-medium" style={{ color: themeColors.text }}>
+                  Category Image <span className="text-red-500">*</span>
                 </label>
-
+                
                 {/* Image Preview */}
                 {(form.imagePreview || form.imageUrl) && (
                   <div className="relative mb-3">
                     <img
                       src={form.imagePreview || form.imageUrl}
-                      alt="Variety preview"
+                      alt="Category preview"
                       className="w-32 h-32 object-cover rounded-lg border"
                       style={{ borderColor: themeColors.border }}
                     />
@@ -969,7 +684,7 @@ export default function Categories() {
                     </button>
                   </div>
                 )}
-
+                
                 {/* File Input */}
                 <input
                   type="file"
@@ -982,26 +697,24 @@ export default function Categories() {
                     color: themeColors.text,
                   }}
                 />
-                <p
-                  className="text-xs mt-1 opacity-70"
-                  style={{ color: themeColors.text }}
-                >
+                <p className="text-xs mt-1 opacity-70" style={{ color: themeColors.text }}>
                   Supported formats: JPEG, PNG, WebP. Max size: 2MB
                 </p>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 justify-end pt-2">
+              {/* Action Buttons */}
+              <div
+                className="flex items-center justify-end gap-2 pt-2 border-t"
+                style={{ borderColor: themeColors.border }}
+              >
                 <button
                   type="button"
                   onClick={() => {
                     setIsModalOpen(false);
                     resetForm();
                   }}
-                  disabled={saving}
-                  className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold border"
                   style={{
-                    backgroundColor: themeColors.surface,
                     borderColor: themeColors.border,
                     color: themeColors.text,
                   }}
@@ -1010,20 +723,17 @@ export default function Categories() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || !isLoggedIn}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={saving}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
                   style={{
                     backgroundColor: themeColors.primary,
-                    color: themeColors.onPrimary,
                   }}
                 >
                   {saving
-                    ? editing
-                      ? "Saving..."
-                      : "Creating..."
+                    ? "Saving..."
                     : editing
                       ? "Save Changes"
-                      : "Create Variety"}
+                      : "Add Category"}
                 </button>
               </div>
             </form>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
 import { useAuth } from "../context/AuthContext";
+import { getVarieties } from "../apis/varieties";
 import { getCategories } from "../apis/categories";
 import {
   listProducts,
@@ -48,6 +49,7 @@ const emptyForm = {
   price: "",
   discountPercent: "",
   categoryId: "",
+  varietyId: "",
   description: "",
   ingredients: "",
   shelfLife: "",
@@ -60,6 +62,7 @@ export default function Products() {
   const { currentFont } = useFont();
   const { isLoggedIn } = useAuth();
 
+  const [varieties, setVarieties] = useState([]);
   const [categories, setCategories] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [products, setProducts] = useState([]);
@@ -92,6 +95,16 @@ export default function Products() {
   });
 
   // ---------- fetchers ----------
+  const fetchVarieties = async () => {
+    try {
+      const res = await getVarieties();
+      const list = Array.isArray(res) ? res : res.categories || res.varieties || [];
+      setVarieties(list);
+    } catch (e) {
+      console.error("Failed to load varieties", e);
+    }
+  };
+
   const fetchCategories = async () => {
     try {
       const res = await getCategories();
@@ -131,6 +144,7 @@ export default function Products() {
   };
 
   useEffect(() => {
+    fetchVarieties();
     fetchCategories();
     fetchVendors();
   }, []);
@@ -147,6 +161,16 @@ export default function Products() {
     fetchProducts(newPage);
   };
 
+  // varietyId -> name map
+  const varietyMap = useMemo(() => {
+    const map = {};
+    varieties.forEach((v) => {
+      const id = v._id || v.id;
+      if (id) map[id] = v.name;
+    });
+    return map;
+  }, [varieties]);
+
   // categoryId -> name map
   const categoryMap = useMemo(() => {
     const map = {};
@@ -156,6 +180,14 @@ export default function Products() {
     });
     return map;
   }, [categories]);
+
+  const filteredVarietiesForSelect = useMemo(() => {
+    if (!form.categoryId) return varieties;
+    return varieties.filter((v) => {
+      const catId = v.category?._id || v.category || "";
+      return catId === form.categoryId;
+    });
+  }, [varieties, form.categoryId]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -205,11 +237,15 @@ export default function Products() {
         typeof prod.discountPercent === "number"
           ? String(prod.discountPercent)
           : prod.discountPercent || "",
+      varietyId:
+        prod.variety?._id ||
+        prod.variety?.id ||
+        prod.variety ||
+        "",
       categoryId:
-        prod.categoryId?._id ||
-        prod.categoryId?.id ||
-        prod.categoryId ||
         prod.category?._id ||
+        prod.category?.id ||
+        prod.category ||
         "",
       description: prod.description || "",
       ingredients: prod.about?.ingredients || "",
@@ -236,6 +272,10 @@ export default function Products() {
 
     if (form.categoryId) {
       fd.append("categoryId", form.categoryId);
+    }
+
+    if (form.varietyId) {
+      fd.append("varietyId", form.varietyId);
     }
 
     if (form.vendor_id) {
@@ -487,7 +527,7 @@ export default function Products() {
             className="text-sm mt-1 opacity-75"
             style={{ color: themeColors.text }}
           >
-            Manage your e-commerce products, pricing, categories and images.
+            Manage your e-commerce products, pricing, varieties and images.
           </p>
         </div>
 
@@ -702,6 +742,7 @@ export default function Products() {
                   {[
                     "Name",
                     "Category",
+                    "Variety",
                     "Price",
                     "Discount",
                     "Status",
@@ -725,7 +766,7 @@ export default function Products() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-6 text-center text-sm"
                       style={{ color: themeColors.text }}
                     >
@@ -735,7 +776,7 @@ export default function Products() {
                 ) : products.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-6 text-center text-sm"
                       style={{ color: themeColors.text }}
                     >
@@ -744,11 +785,8 @@ export default function Products() {
                   </tr>
                 ) : (
                   products.map((p) => {
-                    const catName =
-                      p.category?.name ||
-                      p.categoryId?.name ||
-                      categoryMap[p.categoryId] ||
-                      "-";
+                    const varietyName = p.variety?.name || "-";
+                    const categoryName = p.category?.name || "-";
                     return (
                       <tr key={p._id || p.id || p.slug}>
                         <td
@@ -763,10 +801,16 @@ export default function Products() {
                           ) : null}
                         </td>
                         <td
-                          className="px-4 py-2"
+                          className="px-4 py-2 text-xs"
                           style={{ color: themeColors.text }}
                         >
-                          {catName}
+                          {categoryName}
+                        </td>
+                        <td
+                          className="px-4 py-2 text-xs"
+                          style={{ color: themeColors.text }}
+                        >
+                          {varietyName}
                         </td>
                         <td
                           className="px-4 py-2"
@@ -1242,13 +1286,14 @@ export default function Products() {
                     className="block mb-1 text-sm font-medium"
                     style={{ color: themeColors.text }}
                   >
-                    Category
+                    Category <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="categoryId"
                     name="categoryId"
                     value={form.categoryId}
                     onChange={handleChange}
+                    required
                     className="w-full px-3 py-2 rounded-lg border text-sm"
                     style={{
                       backgroundColor: themeColors.background,
@@ -1260,6 +1305,37 @@ export default function Products() {
                     {categories.map((c) => (
                       <option key={c._id || c.id} value={c._id || c.id}>
                         {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Variety */}
+                <div>
+                  <label
+                    htmlFor="varietyId"
+                    className="block mb-1 text-sm font-medium"
+                    style={{ color: themeColors.text }}
+                  >
+                    Variety <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="varietyId"
+                    name="varietyId"
+                    value={form.varietyId}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 rounded-lg border text-sm"
+                    style={{
+                      backgroundColor: themeColors.background,
+                      borderColor: themeColors.border,
+                      color: themeColors.text,
+                    }}
+                  >
+                    <option value="">Select variety</option>
+                    {filteredVarietiesForSelect.map((v) => (
+                      <option key={v._id || v.id} value={v._id || v.id}>
+                        {v.name}
                       </option>
                     ))}
                   </select>
@@ -1808,10 +1884,11 @@ export default function Products() {
                       className="text-xs uppercase font-semibold mb-1"
                       style={{ color: themeColors.text }}
                     >
-                      Category
+                      Variety
                     </p>
                     <p style={{ color: themeColors.text }}>
-                      {viewProduct.category?.name ||
+                      {viewProduct.variety?.name ||
+                        viewProduct.category?.name ||
                         viewProduct.categoryId?.name ||
                         categoryMap[viewProduct.categoryId] ||
                         "-"}

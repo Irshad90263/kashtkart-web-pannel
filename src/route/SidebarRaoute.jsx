@@ -16,11 +16,13 @@ import {
   FaBriefcase,
   FaTree,
   FaCalendarCheck,
+  FaTags,
 } from "react-icons/fa";
 
 // pages
 const Dashboard = lazy(() => import("../pages/Dashboard"));
 const Categories = lazy(() => import("../pages/Categories"));
+const ProductCategories = lazy(() => import("../pages/ProductCategories"));
 const Products = lazy(() => import("../pages/Products"));
 const Offers = lazy(() => import("../pages/Offers"));
 const Orders = lazy(() => import("../pages/Orders"));
@@ -38,6 +40,7 @@ const AddVendor = lazy(() => import("../pages/AddVendor"));
 const CorporateInquiries = lazy(() => import("../pages/CorporateInquiries"));
 const Orchards = lazy(() => import("../pages/Orchards"));
 const Bookings = lazy(() => import("../pages/Bookings"));
+const ViewBooking = lazy(() => import("../pages/ViewBooking"));
 
 
 const routes = [
@@ -48,11 +51,13 @@ const routes = [
   { path: "/vendors/add", component: AddVendor, name: "Add Vendor", icon: FaPlus, hide: true },
   { path: "/vendors/edit/:id", component: AddVendor, name: "Edit Vendor", icon: FaPlus, hide: true },
   { path: "/vendors/view/:id", component: AddVendor, name: "View Vendor", icon: FaPlus, hide: true },
-  { path: "/categories", component: Categories, name: "Categories", icon: FaBox },
+  { path: "/varieties", component: Categories, name: "Varieties", icon: FaBox },
+  { path: "/categories", component: ProductCategories, name: "Categories", icon: FaTags },
   { path: "/products", component: Products, name: "Products", icon: FaBox },
   // { path: "/offers", component: Offers, name: "Offers", icon: FaCoins },
   { path: "/orders", component: Orders, name: "Orders", icon: FaShoppingCart },
   { path: "/bookings", component: Bookings, name: "Bookings", icon: FaCalendarCheck },
+  { path: "/bookings/view/:id", component: ViewBooking, name: "View Booking", icon: FaCalendarCheck, hide: true },
   { path: "/enquiries", component: Enquiries, name: "Enquiries", icon: FaEnvelopeOpenText },
   { path: "/sliders", component: Sliders, name: "Sliders", icon: FaImages },
   { path: "/review-videos", component: ReviewVideos, name: "Review Videos", icon: FaVideo },

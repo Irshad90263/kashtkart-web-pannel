@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
 import { useAuth } from "../context/AuthContext";
@@ -6,6 +7,7 @@ import {
   getAllBookings,
   updateBookingStatus,
   deleteBooking,
+  exportBookingsExcel,
 } from "../apis/booking";
 import Pagination from "../components/Pagination";
 import {
@@ -42,6 +44,7 @@ const STATUS_OPTIONS = [
 const PAYMENT_STATUS_OPTIONS = ["pending", "paid", "failed"];
 
 export default function Bookings() {
+  const navigate = useNavigate();
   const { themeColors } = useTheme();
   const { currentFont } = useFont();
   const { isLoggedIn } = useAuth();
@@ -54,6 +57,37 @@ export default function Bookings() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [selected, setSelected] = useState(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true);
+      const blob = await exportBookingsExcel();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `bookings_${Date.now()}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      Swal.fire({
+        icon: "success",
+        title: "Export Completed",
+        text: "Bookings excel exported successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (e) {
+      console.error("Failed to export bookings:", e);
+      Swal.fire({
+        icon: "error",
+        title: "Export Failed",
+        text: e?.message || "Failed to download booking Excel.",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -296,20 +330,38 @@ export default function Bookings() {
       </div>
 
       <div className="flex flex-col  md:flex-row md:items-center md:justify-between gap-4">
-        <div className="relative flex-1 md:mx-2">
-          <FaSearch className="absolute left-3 top-3 text-gray-400 text-sm" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search bookings..."
-            className="pl-10 pr-4 py-2 rounded-md border text-sm shadow-sm outline-none w-full"
+        <div className="flex items-center gap-2 flex-1 md:mx-2">
+          <div className="relative flex-1">
+            <FaSearch className="absolute left-3 top-3 text-gray-400 text-sm" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search bookings..."
+              className="pl-10 pr-4 py-2 rounded-md border text-sm shadow-sm outline-none w-full"
+              style={{
+                backgroundColor: themeColors.surface,
+                borderColor: themeColors.border,
+                color: themeColors.text,
+              }}
+            />
+          </div>
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-md border text-xs font-bold shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-75 disabled:cursor-not-allowed min-w-[110px]"
             style={{
               backgroundColor: themeColors.surface,
               borderColor: themeColors.border,
               color: themeColors.text,
             }}
-          />
+          >
+            {exporting ? (
+              <Spinner size="w-3.5 h-3.5" color="border-green-600" />
+            ) : (
+              "Export Excel"
+            )}
+          </button>
         </div>
         <select
           value={statusFilter}
@@ -362,10 +414,10 @@ export default function Bookings() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="w-full">
         {/* Table List */}
         <div
-          className="lg:col-span-2 bg-white rounded-md shadow-sm border overflow-hidden"
+          className="bg-white rounded-md shadow-sm border overflow-hidden"
           style={{ borderColor: themeColors.border }}
         >
           <div className="overflow-x-auto">
@@ -375,6 +427,9 @@ export default function Bookings() {
                 style={{ borderColor: themeColors.border }}
               >
                 <tr>
+                  <th className="px-3 py-3 text-center font-bold text-gray-500 uppercase tracking-wider w-12">
+                    Sr.
+                  </th>
                   <th className="px-4 py-3 text-left font-bold text-gray-500 uppercase tracking-wider">
                     Booking ID & Customer
                   </th>
@@ -401,7 +456,7 @@ export default function Bookings() {
               >
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="px-4 py-12 text-center">
+                    <td colSpan="7" className="px-4 py-12 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Spinner size="w-6 h-6" color="border-green-600" />
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
@@ -413,19 +468,24 @@ export default function Bookings() {
                 ) : bookings.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="px-4 py-12 text-center text-gray-400 font-medium"
                     >
                       No bookings found matching your criteria.
                     </td>
                   </tr>
                 ) : (
-                  bookings.map((item) => (
+                  bookings.map((item, index) => (
                     <tr
                       key={item._id}
-                      onClick={() => setSelected(item)}
-                      className={`cursor-pointer transition-all hover:bg-gray-50 ${selected?._id === item._id ? "bg-green-50/30" : ""}`}
+                      onClick={() => navigate(`/bookings/view/${item._id}`)}
+                      className="cursor-pointer transition-all hover:bg-gray-50"
                     >
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="font-bold text-gray-500 text-xs">
+                          {(pagination.page - 1) * pagination.limit + index + 1}
+                        </span>
+                      </td>
                       <td className="px-4 py-2.5">
                         <div className="font-bold text-green-700 text-sm">
                           {item.bookingNo}
@@ -445,10 +505,12 @@ export default function Bookings() {
                           {item.mangoName?.name || item.mangoName || "-"}
                         </div>
                         <div className="text-[10px] text-gray-500">
-                          {item.mangoVariety?.name ||
+                          Category: {item.mangoCategory?.name || item.mangoCategory || "-"}
+                        </div>
+                        <div className="text-[10px] text-gray-500">
+                          Variety: {item.mangoVariety?.name ||
                             item.mangoVariety ||
-                            "Special"}{" "}
-                          Category
+                            "Special"}
                         </div>
                         <div className="text-[10px] text-gray-400">
                           {item.numberOfBoxes} Box(es) ({item.boxSize})
@@ -491,7 +553,7 @@ export default function Bookings() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelected(item);
+                              navigate(`/bookings/view/${item._id}`);
                             }}
                             className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-all"
                             title="View Booking"
@@ -527,249 +589,6 @@ export default function Bookings() {
               />
             </div>
           )}
-        </div>
-
-        {/* Detail Sidebar */}
-        <div className="space-y-4">
-          <div
-            className="bg-white rounded-md shadow-sm border p-4 sticky top-24"
-            style={{ borderColor: themeColors.border }}
-          >
-            <h2
-              className="text-base font-bold mb-4 flex items-center gap-2 border-b pb-2"
-              style={{ color: themeColors.text }}
-            >
-              Booking Details
-            </h2>
-
-            {!selected ? (
-              <div className="text-center py-12">
-                <FaCalendarCheck className="mx-auto text-4xl text-gray-100 mb-3" />
-                <p className="text-xs text-gray-400">
-                  Select a booking to view complete details
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-                {/* Header info */}
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-base font-black text-green-700 leading-tight">
-                      {selected.bookingNo}
-                    </h3>
-                    <p className="text-[10px] text-gray-400">
-                      Placed: {fmtDateTime(selected.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span style={statusBadgeStyle(selected.status)}>
-                      {selected.status}
-                    </span>
-                    <span
-                      style={paymentStatusBadgeStyle(selected.paymentStatus)}
-                    >
-                      {selected.paymentStatus}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Customer Details */}
-                <div className="p-3 bg-gray-50 rounded-md border border-gray-100 space-y-1.5">
-                  <p className="text-[9px] uppercase font-bold text-gray-400 flex items-center gap-1">
-                    <FaUser className="text-gray-400" /> Customer Information
-                  </p>
-                  <p className="text-xs font-bold text-gray-800">
-                    {selected.fullName}
-                  </p>
-                  <p className="text-xs font-medium text-gray-600">
-                    Mobile: {selected.mobileNumber}
-                  </p>
-                  {selected.alternateMobileNumber && (
-                    <p className="text-xs text-gray-500">
-                      Alternate: {selected.alternateMobileNumber}
-                    </p>
-                  )}
-                  {selected.emailId && (
-                    <p className="text-xs text-gray-500 truncate">
-                      Email: {selected.emailId}
-                    </p>
-                  )}
-                </div>
-
-                {/* Order Details */}
-                <div className="p-3 bg-green-50/30 rounded-md border border-green-100 space-y-1.5">
-                  <p className="text-[9px] uppercase font-bold text-green-600 flex items-center gap-1">
-                    <FaShoppingBag className="text-green-500" /> Order Details
-                  </p>
-                  <p className="text-xs font-bold text-gray-800">
-                    {selected.mangoName?.name || selected.mangoName || "-"}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Category:{" "}
-                    {selected.mangoVariety?.name ||
-                      selected.mangoVariety ||
-                      "Special"}
-                  </p>
-                  {selected.mangoName?.vendor_id && (
-                    <div className="text-[11px] text-gray-600 mt-1 border-t border-dashed border-gray-200/60 pt-1">
-                      <span className="font-semibold block text-[9px] uppercase text-gray-400">Grower / Vendor</span>
-                      <div className="font-bold text-slate-700">
-                        {selected.mangoName.vendor_id.name || "-"}
-                      </div>
-                      {selected.mangoName.vendor_id.contactDetails?.phoneNumber && (
-                        <div className="text-gray-500 font-medium">
-                          Phone: {selected.mangoName.vendor_id.contactDetails.phoneNumber}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <p className="text-xs text-gray-600">
-                    Product Price (per box):{" "}
-                    <span className="font-semibold">
-                      ₹{selected.productPrice || "0"}
-                    </span>
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Quantity:{" "}
-                    <span className="font-bold">{selected.numberOfBoxes}</span>{" "}
-                    Box(es) ({selected.boxSize})
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Preferred Delivery:{" "}
-                    <span className="font-semibold">
-                      {selected.preferredDeliveryWeek}
-                    </span>
-                  </p>
-                  {selected.specialInstructions && (
-                    <div className="text-[11px] text-gray-500 border-t pt-1 italic">
-                      Instructions: "{selected.specialInstructions}"
-                    </div>
-                  )}
-                </div>
-
-                {/* Delivery Address */}
-                <div className="p-3 bg-gray-50 rounded-md border border-gray-100 space-y-1.5">
-                  <p className="text-[9px] uppercase font-bold text-gray-400 flex items-center gap-1">
-                    <FaMapMarkerAlt className="text-gray-400" /> Delivery
-                    Address
-                  </p>
-                  <p className="text-xs text-gray-700 leading-relaxed font-medium">
-                    {selected.completeAddress}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    {selected.city}, {selected.state} - {selected.pincode}
-                  </p>
-                  {selected.landmark && (
-                    <p className="text-xs text-gray-500">
-                      Landmark: {selected.landmark}
-                    </p>
-                  )}
-                </div>
-
-                {/* Payment info */}
-                <div className="p-3 bg-amber-50/50 rounded-md border border-amber-200/50 space-y-1.5">
-                  <p className="text-[9px] uppercase font-bold text-amber-600 flex items-center gap-1">
-                    <FaCreditCard className="text-amber-500" /> Payment &
-                    Transaction
-                  </p>
-                  <div className="flex justify-between text-xs text-gray-700">
-                    <span>Product Price Total:</span>
-                    <span className="font-medium text-gray-800">
-                      ₹
-                      {(selected.productPrice || 0) *
-                        (selected.numberOfBoxes || 1)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-700">
-                    <span>Booking Fee Paid (Advance):</span>
-                    <span className="font-semibold text-green-700">
-                      ₹{selected.bookingAmountPaid || "0"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-700 border-t pt-1 font-bold">
-                    <span>Total Amount (Booking):</span>
-                    <span className="text-green-700">
-                      ₹{selected.totalAmount || "0"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-700">
-                    <span>Payment Mode:</span>
-                    <span className="font-semibold">
-                      {selected.paymentMode}
-                    </span>
-                  </div>
-                  {selected.transactionId && (
-                    <div className="text-xs text-gray-600 border-t pt-1 truncate">
-                      <span>Txn ID: {selected.transactionId}</span>
-                    </div>
-                  )}
-                  {selected.referralSource && (
-                    <div className="text-[10px] text-gray-400 italic">
-                      Source: Heard from {selected.referralSource}
-                    </div>
-                  )}
-                </div>
-
-                {/* Update Status Actions */}
-                <div className="pt-2 border-t space-y-3">
-                  {/* Booking Status Update */}
-                  <div>
-                    <p className="text-[9px] uppercase font-bold text-gray-400 mb-1.5">
-                      Update Booking Status
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {STATUS_OPTIONS.map((opt) => (
-                        <button
-                          key={opt}
-                          onClick={() => handleStatusChange(selected, opt)}
-                          disabled={!!statusUpdating}
-                          className={`px-2.5 py-1 rounded text-[9px] font-bold transition-all flex items-center justify-center gap-1 ${
-                            selected.status === opt
-                              ? "bg-gray-800 text-white shadow-sm"
-                              : "bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-100"
-                          }`}
-                        >
-                          {statusUpdating ===
-                            `${selected._id}-status-${opt}` && (
-                            <Spinner size="w-2.5 h-2.5" color="border-white" />
-                          )}
-                          {opt.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Payment Status Update */}
-                  <div>
-                    <p className="text-[9px] uppercase font-bold text-gray-400 mb-1.5">
-                      Update Payment Status
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {PAYMENT_STATUS_OPTIONS.map((opt) => (
-                        <button
-                          key={opt}
-                          onClick={() =>
-                            handlePaymentStatusChange(selected, opt)
-                          }
-                          disabled={!!statusUpdating}
-                          className={`px-2.5 py-1 rounded text-[9px] font-bold transition-all flex items-center justify-center gap-1 ${
-                            selected.paymentStatus === opt
-                              ? "bg-green-700 text-white shadow-sm"
-                              : "bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-100"
-                          }`}
-                        >
-                          {statusUpdating === `${selected._id}-pay-${opt}` && (
-                            <Spinner size="w-2.5 h-2.5" color="border-white" />
-                          )}
-                          {opt.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

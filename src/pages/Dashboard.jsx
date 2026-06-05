@@ -133,7 +133,7 @@ export default function Dashboard() {
       icon: FaBoxOpen,
       description: `Active products: ${fmtNum(
         summary.activeProducts
-      )} • Categories: ${fmtNum(summary.totalCategories)} (${fmtNum(
+      )} • Varieties: ${fmtNum(summary.totalCategories)} (${fmtNum(
         summary.activeCategories
       )} active)`,
     },
@@ -386,7 +386,7 @@ export default function Dashboard() {
               style={{ color: themeColors.text }}
             >
               <FaChartBar />
-              Products by Category
+              Products by Variety
             </h2>
             <div style={{ width: "100%", height: 280 }}>
               <ResponsiveContainer>
@@ -572,7 +572,7 @@ export default function Dashboard() {
                     >
                       {[
                         "Product",
-                        "Category",
+                        "Variety",
                         "Price",
                         "Final Price",
                         "Status",

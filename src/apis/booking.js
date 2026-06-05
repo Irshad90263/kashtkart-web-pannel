@@ -14,3 +14,15 @@ export const deleteBooking = async (id) => {
     const res = await http.delete(`/bookings/${id}`);
     return res.data;
 };
+
+export const exportBookingsExcel = async () => {
+    const res = await http.get(`/bookings/admin/export/excel`, {
+        responseType: 'blob'
+    });
+    return res.data;
+};
+
+export const getBookingById = async (id) => {
+    const res = await http.get(`/bookings/${id}`);
+    return res.data;
+};
