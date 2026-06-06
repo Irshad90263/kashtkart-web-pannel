@@ -53,7 +53,7 @@ const emptyForm = {
   description: "",
   ingredients: "",
   shelfLife: "",
-  netWeight: "",
+  netWeight: [],
   vendor_id: "",
 };
 
@@ -86,6 +86,9 @@ export default function Products() {
   // NEW: full view modal product
   const [viewProduct, setViewProduct] = useState(null);
   const [vendorDropdownOpen, setVendorDropdownOpen] = useState(false);
+  const [netWeightDropdownOpen, setNetWeightDropdownOpen] = useState(false);
+  const [customWeightInput, setCustomWeightInput] = useState("");
+  const [showCustomWeight, setShowCustomWeight] = useState(false);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -250,7 +253,7 @@ export default function Products() {
       description: prod.description || "",
       ingredients: prod.about?.ingredients || "",
       shelfLife: prod.about?.shelfLife || "",
-      netWeight: prod.about?.netWeight || "",
+      netWeight: Array.isArray(prod.about?.netWeight) ? prod.about.netWeight : (prod.about?.netWeight ? [String(prod.about.netWeight)] : []),
       vendor_id: prod.vendor_id?._id || prod.vendor_id || "",
     });
 
@@ -289,7 +292,7 @@ export default function Products() {
     const aboutData = {
       ingredients: form.ingredients.trim(),
       shelfLife: form.shelfLife.trim(),
-      netWeight: form.netWeight.trim(),
+      netWeight: form.netWeight,
     };
     fd.append("about", JSON.stringify(aboutData));
 
@@ -1396,7 +1399,7 @@ export default function Products() {
                 </div>
 
                 {/* Net Weight */}
-                <div>
+                <div className="relative">
                   <label
                     htmlFor="netWeight"
                     className="block mb-1 text-sm font-medium"
@@ -1404,20 +1407,149 @@ export default function Products() {
                   >
                     Net Weight
                   </label>
-                  <input
-                    id="netWeight"
-                    name="netWeight"
-                    type="text"
-                    value={form.netWeight}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
-                    style={{
-                      backgroundColor: themeColors.background,
-                      borderColor: themeColors.border,
-                      color: themeColors.text,
-                    }}
-                    placeholder="1 kg"
-                  />
+                  <div className="relative">
+                    <div
+                      onClick={() => setNetWeightDropdownOpen(!netWeightDropdownOpen)}
+                      className="w-full px-3 py-2 rounded-lg border text-sm cursor-pointer flex flex-wrap gap-1 items-center min-h-[38px]"
+                      style={{
+                        backgroundColor: themeColors.background,
+                        borderColor: themeColors.border,
+                        color: themeColors.text,
+                      }}
+                    >
+                      {form.netWeight.length > 0 ? (
+                        form.netWeight.map((nw) => (
+                          <span
+                            key={nw}
+                            className="px-2 py-0.5 rounded text-xs flex items-center gap-1"
+                            style={{
+                              backgroundColor: themeColors.primary + "20",
+                              color: themeColors.primary,
+                            }}
+                          >
+                            {nw}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setForm((prev) => ({
+                                  ...prev,
+                                  netWeight: prev.netWeight.filter((w) => w !== nw),
+                                }));
+                              }}
+                              className="opacity-70 hover:opacity-100"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="opacity-70">Select Weights</span>
+                      )}
+                      <FaChevronDown
+                        className={`w-3 h-3 ml-auto transition-transform duration-300 ${netWeightDropdownOpen ? "rotate-180" : ""}`}
+                        style={{ color: themeColors.text }}
+                      />
+                    </div>
+
+                    {netWeightDropdownOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-[45]"
+                          onClick={() => setNetWeightDropdownOpen(false)}
+                        ></div>
+                        <div
+                          className="absolute z-[50] w-full mt-1 max-h-60 overflow-y-auto rounded-lg border shadow-xl custom-scrollbar"
+                          style={{
+                            backgroundColor: themeColors.surface,
+                            borderColor: themeColors.border,
+                          }}
+                        >
+                          {["3kg", "6kg", "9kg"].map((option) => (
+                            <label
+                              key={option}
+                              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-black/5 transition-colors border-b border-black/5"
+                              style={{ color: themeColors.text }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={form.netWeight.includes(option)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      netWeight: [...prev.netWeight, option],
+                                    }));
+                                  } else {
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      netWeight: prev.netWeight.filter(
+                                        (w) => w !== option
+                                      ),
+                                    }));
+                                  }
+                                }}
+                                className="rounded border-gray-300 focus:ring-2"
+                                style={{ accentColor: themeColors.primary }}
+                              />
+                              <span className="text-sm font-medium">{option}</span>
+                            </label>
+                          ))}
+                          
+                          {/* Custom input placed directly inside the dropdown */}
+                          <div className="p-2 border-t border-black/5" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={customWeightInput}
+                                onChange={(e) => setCustomWeightInput(e.target.value)}
+                                placeholder="Custom (e.g. 5kg)"
+                                className="flex-1 px-2 py-1.5 rounded border text-xs focus:outline-none focus:ring-1"
+                                style={{
+                                  backgroundColor: themeColors.background,
+                                  borderColor: themeColors.border,
+                                  color: themeColors.text,
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    if (customWeightInput.trim() && !form.netWeight.includes(customWeightInput.trim())) {
+                                      setForm((prev) => ({
+                                        ...prev,
+                                        netWeight: [...prev.netWeight, customWeightInput.trim()]
+                                      }));
+                                    }
+                                    setCustomWeightInput("");
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (customWeightInput.trim() && !form.netWeight.includes(customWeightInput.trim())) {
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      netWeight: [...prev.netWeight, customWeightInput.trim()]
+                                    }));
+                                  }
+                                  setCustomWeightInput("");
+                                }}
+                                className="px-3 py-1.5 rounded text-xs font-semibold"
+                                style={{
+                                  backgroundColor: themeColors.primary,
+                                  color: themeColors.onPrimary,
+                                }}
+                              >
+                                Add
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Vendor */}
@@ -1943,7 +2075,7 @@ export default function Products() {
                     </div>
                   )}
 
-                  {viewProduct.about?.netWeight && (
+                  {viewProduct.about?.netWeight && viewProduct.about.netWeight.length > 0 && (
                     <div>
                       <p
                         className="text-xs uppercase font-semibold mb-1"
@@ -1951,12 +2083,33 @@ export default function Products() {
                       >
                         Net Weight
                       </p>
-                      <p
-                        className="text-xs"
-                        style={{ color: themeColors.text }}
-                      >
-                        {viewProduct.about.netWeight}
-                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(viewProduct.about.netWeight) 
+                          ? viewProduct.about.netWeight.map((nw, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 rounded-full text-[11px]"
+                                style={{
+                                  backgroundColor: themeColors.background + "60",
+                                  color: themeColors.text,
+                                }}
+                              >
+                                {nw}
+                              </span>
+                            ))
+                          : (
+                              <span
+                                className="px-2 py-0.5 rounded-full text-[11px]"
+                                style={{
+                                  backgroundColor: themeColors.background + "60",
+                                  color: themeColors.text,
+                                }}
+                              >
+                                {viewProduct.about.netWeight}
+                              </span>
+                            )
+                        }
+                      </div>
                     </div>
                   )}
 

@@ -38,8 +38,9 @@ const fmtCurrency = (n) =>
     ? `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
     : (n ?? "-");
 
-// Possible order statuses (assumption)
+// Possible order statuses
 const STATUS_OPTIONS = [
+  "order placed",
   "pending",
   "confirmed",
   "shipped",
@@ -530,6 +531,12 @@ function Orders() {
     };
 
     switch (status) {
+      case "order placed":
+        return {
+          ...base,
+          backgroundColor: "#f59e0b20",
+          color: "#d97706",
+        };
       case "confirmed":
         return {
           ...base,
@@ -1124,13 +1131,13 @@ function Orders() {
                     className="font-bold text-sm"
                     style={{ color: themeColors.text }}
                   >
-                    SKS Laddu
+                    KaashKart Mango
                   </p>
                   <p
                     className="text-[11px] opacity-70"
                     style={{ color: themeColors.text }}
                   >
-                    Ahirawan, Sandila, UP
+                    KaashtKart Marketplace, Lucknow, UP
                   </p>
                 </div>
                 <div className="text-right p-2.5 rounded-xl bg-gray-50/50 border border-gray-100">
@@ -1189,10 +1196,15 @@ function Orders() {
                     {(selectedOrder.items || []).map((item, idx) => (
                       <tr key={idx}>
                         <td
-                          className="py-2 px-3 font-semibold"
+                          className="py-2 px-3"
                           style={{ color: themeColors.text }}
                         >
-                          {item.productName || item.product?.name || "Item"}
+                          <div className="font-semibold">{item.productName || item.product?.name || "Item"}</div>
+                          {item.size && item.size !== "Standard" && (
+                            <div className="text-[10px] text-gray-500 font-normal mt-0.5">
+                              Weight: {item.size}
+                            </div>
+                          )}
                         </td>
                         <td
                           className="py-2 px-2 text-center"
