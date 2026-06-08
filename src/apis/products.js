@@ -8,6 +8,12 @@ export const listProducts = async (status = 'active', page = 1, limit = 10, sear
   return data;
 };
 
+// Admin: get single product – GET /products/:idOrSlug
+export const getProduct = async (idOrSlug) => {
+  const { data } = await http.get(`/products/${idOrSlug}`);
+  return data;
+};
+
 // Admin: create product – POST /products (multipart/form-data)
 export const createProduct = async (formData) => {
   const { data } = await http.post("/products", formData, {

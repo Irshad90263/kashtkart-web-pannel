@@ -24,6 +24,7 @@ const Dashboard = lazy(() => import("../pages/Dashboard"));
 const Categories = lazy(() => import("../pages/Categories"));
 const ProductCategories = lazy(() => import("../pages/ProductCategories"));
 const Products = lazy(() => import("../pages/Products"));
+const AddProduct = lazy(() => import("../pages/AddProduct"));
 const Offers = lazy(() => import("../pages/Offers"));
 const Orders = lazy(() => import("../pages/Orders"));
 const Enquiries = lazy(() => import("../pages/Enquiries"));
@@ -54,6 +55,9 @@ const routes = [
   { path: "/varieties", component: Categories, name: "Varieties", icon: FaBox },
   { path: "/categories", component: ProductCategories, name: "Categories", icon: FaTags },
   { path: "/products", component: Products, name: "Products", icon: FaBox },
+  { path: "/products/add", component: AddProduct, name: "Add Product", icon: FaPlus, hide: true },
+  { path: "/products/edit/:id", component: AddProduct, name: "Edit Product", icon: FaPlus, hide: true },
+  { path: "/products/view/:id", component: AddProduct, name: "View Product", icon: FaPlus, hide: true },
   // { path: "/offers", component: Offers, name: "Offers", icon: FaCoins },
   { path: "/orders", component: Orders, name: "Orders", icon: FaShoppingCart },
   { path: "/bookings", component: Bookings, name: "Bookings", icon: FaCalendarCheck },
