@@ -21,15 +21,15 @@ import { toast } from 'sonner';
 import { createVendor, getVendorById, updateVendor } from '../apis/vendor';
 
 const FormSection = ({ title, icon: Icon, themeColors, children }) => (
-    <div className="p-8 rounded-md border space-y-6 shadow-sm transition-all hover:shadow-md" 
+    <div className="p-8 space-y-6 transition-all border rounded-md shadow-sm hover:shadow-md" 
          style={{ backgroundColor: themeColors.surface, borderColor: themeColors.border }}>
-        <div className="flex items-center gap-4 border-b pb-4" style={{ borderColor: themeColors.border }}>
+        <div className="flex items-center gap-4 pb-4 border-b" style={{ borderColor: themeColors.border }}>
             <div className="p-3 rounded-md" style={{ backgroundColor: themeColors.primary + '15', color: themeColors.primary }}>
                 <Icon size={20} />
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight" style={{ color: themeColors.text }}>{title}</h2>
+            <h2 className="text-xl font-black tracking-tight uppercase" style={{ color: themeColors.text }}>{title}</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {children}
         </div>
     </div>
@@ -37,7 +37,7 @@ const FormSection = ({ title, icon: Icon, themeColors, children }) => (
 
 const InputField = ({ label, type = "text", placeholder, value, onChange, required, themeColors, className = "", error, maxLength, disabled }) => (
     <div className={`space-y-2 ${className}`}>
-        <label className="text-xs font-bold uppercase opacity-60 ml-1 tracking-wider" style={{ color: error ? '#ef4444' : themeColors.text }}>
+        <label className="ml-1 text-xs font-bold tracking-wider uppercase opacity-60" style={{ color: error ? '#ef4444' : themeColors.text }}>
             {label} {required && <span className="text-red-500">*</span>}
         </label>
         <input
@@ -265,10 +265,10 @@ const AddVendor = () => {
                 return;
             }
 
-            if (!files.growerSignature) {
-                toast.error("Please upload grower signature");
-                return;
-            }
+            // if (!files.growerSignature) {
+            //     toast.error("Please upload grower signature");
+            //     return;
+            // }
         }
 
         try {
@@ -325,13 +325,13 @@ const AddVendor = () => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-20" style={{ fontFamily: currentFont.family }}>
+        <div className="max-w-6xl pb-20 mx-auto space-y-8" style={{ fontFamily: currentFont.family }}>
             {/* Header */}
-            <div className="flex items-center justify-between bg-white p-6 rounded-md shadow-sm">
+            <div className="flex items-center justify-between p-6 bg-white rounded-md shadow-sm">
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={() => navigate('/vendors')}
-                        className="p-3 rounded-md border transition-all hover:bg-gray-50 active:scale-95"
+                        className="p-3 transition-all border rounded-md hover:bg-gray-50 active:scale-95"
                         style={{ borderColor: themeColors.border }}
                     >
                         <FaArrowLeft style={{ color: themeColors.text }} />
@@ -340,7 +340,7 @@ const AddVendor = () => {
                         <h1 className="text-2xl font-black" style={{ color: themeColors.text }}>
                             {isView ? "View Mango Grower Details" : isEdit ? "Update Mango Grower" : "Add New Mango Grower"}
                         </h1>
-                        <p className="text-xs font-bold opacity-50 uppercase tracking-widest">
+                        <p className="text-xs font-bold tracking-widest uppercase opacity-50">
                             {isView ? "Full Vendor Information" : isEdit ? "Update Profile Information" : "Farm Profile Creation"}
                         </p>
                     </div>
@@ -349,7 +349,7 @@ const AddVendor = () => {
                     <button 
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="px-10 py-4 rounded-md font-bold shadow-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="px-10 py-4 font-bold transition-all rounded-md shadow-xl hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                         style={{ backgroundColor: themeColors.primary, color: themeColors.onPrimary }}
                     >
                         {loading ? (isEdit ? 'Updating...' : 'Creating...') : (isEdit ? 'Update Profile' : 'Create Vendor Profile')}
@@ -379,11 +379,11 @@ const AddVendor = () => {
                         disabled={isView}
                     />
                     <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase opacity-60 ml-1 tracking-wider">Grower Photo</label>
+                        <label className="ml-1 text-xs font-bold tracking-wider uppercase opacity-60">Grower Photo</label>
                         {existingFiles.photo && (
-                            <div className="mb-2 h-32 w-32 relative rounded-lg overflow-hidden border border-gray-100 shadow-sm transition-transform hover:scale-105 group">
+                            <div className="relative w-32 h-32 mb-2 overflow-hidden transition-transform border border-gray-100 rounded-lg shadow-sm hover:scale-105 group">
                                 <a href={existingFiles.photo} target="_blank" rel="noopener noreferrer">
-                                    <img src={existingFiles.photo} className="w-full h-full object-cover" alt="Grower" />
+                                    <img src={existingFiles.photo} className="object-cover w-full h-full" alt="Grower" />
                                 </a>
                                 {isEdit && (
                                     <button 
@@ -404,7 +404,7 @@ const AddVendor = () => {
 
                 {/* 2 & 3. Address Info */}
                 <FormSection title="2 & 3. Addresses" icon={FaHome} themeColors={themeColors}>
-                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:col-span-2 md:grid-cols-2">
                         <div className="space-y-4">
                             <h3 className="text-xs font-black uppercase opacity-40">Residential Address</h3>
                             <InputField label="Full Address" placeholder="House no, Street, Village" value={formData.residentialAddress.address} onChange={(val) => handleInputChange('residentialAddress.address', val)} themeColors={themeColors} disabled={isView} />
@@ -427,8 +427,8 @@ const AddVendor = () => {
 
                 {/* 8. Varieties */}
                 <FormSection title="8. Mango Varieties" icon={FaCheckCircle} themeColors={themeColors}>
-                    <div className="md:col-span-2 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-4 md:col-span-2">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             {formData.mangoVarietiesGrown.map((variety, idx) => (
                                 <div key={idx} className="relative group">
                                     <input
@@ -437,7 +437,7 @@ const AddVendor = () => {
                                         value={variety}
                                         onChange={(e) => handleVarietyChange(idx, e.target.value)}
                                         disabled={isView}
-                                        className="w-full px-5 py-3 rounded-md border outline-none transition-all focus:ring-2"
+                                        className="w-full px-5 py-3 transition-all border rounded-md outline-none focus:ring-2"
                                         style={{ backgroundColor: themeColors.background, borderColor: themeColors.border, color: themeColors.text }}
                                     />
                                     {formData.mangoVarietiesGrown.length > 1 && !isView && (
@@ -456,7 +456,7 @@ const AddVendor = () => {
                             <button 
                                 type="button"
                                 onClick={addVarietyField}
-                                className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all"
+                                className="flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-wider uppercase transition-all bg-gray-100 rounded-xl hover:bg-gray-200"
                             >
                                 <FaPlus /> Add More Variety
                             </button>
@@ -466,12 +466,12 @@ const AddVendor = () => {
 
                 {/* 9 & 10. Practices */}
                 <FormSection title="9 & 10. Farming & Harvesting" icon={FaLeaf} themeColors={themeColors}>
-                    <div className="md:col-span-2 space-y-6">
+                    <div className="space-y-6 md:col-span-2">
                         <div className="space-y-3">
-                            <label className="text-xs font-bold uppercase opacity-60 ml-1">Farming Practice Type</label>
+                            <label className="ml-1 text-xs font-bold uppercase opacity-60">Farming Practice Type</label>
                             <div className="flex gap-4">
                                 {['organic', 'chemical', 'both'].map(type => (
-                                    <label key={type} className="flex items-center gap-3 px-6 py-3 rounded-md border cursor-pointer transition-all" 
+                                    <label key={type} className="flex items-center gap-3 px-6 py-3 transition-all border rounded-md cursor-pointer" 
                                            style={{ 
                                                borderColor: formData.farmingPractices.type === type ? themeColors.primary : themeColors.border,
                                                backgroundColor: formData.farmingPractices.type === type ? themeColors.primary + '05' : 'transparent'
@@ -491,14 +491,14 @@ const AddVendor = () => {
                         </div>
 
                         {formData.farmingPractices.type !== 'chemical' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 rounded-md bg-emerald-50/30 border border-emerald-100">
+                            <div className="grid grid-cols-1 gap-4 p-6 border rounded-md md:grid-cols-2 bg-emerald-50/30 border-emerald-100">
                                 <InputField label="Organic Methods Used" placeholder="e.g. Vermicompost, Bio-pesticides" value={formData.farmingPractices.organicDetails.methodsUsed} onChange={(val) => handleInputChange('farmingPractices.organicDetails.methodsUsed', val)} themeColors={themeColors} disabled={isView} />
                                 <InputField label="Certification Details" placeholder="e.g. APEDA, NPOP" value={formData.farmingPractices.organicDetails.certification} onChange={(val) => handleInputChange('farmingPractices.organicDetails.certification', val)} themeColors={themeColors} disabled={isView} />
                             </div>
                         )}
 
                         {(formData.farmingPractices.type === 'chemical' || formData.farmingPractices.type === 'both') && (
-                            <div className="p-6 rounded-md bg-amber-50/30 border border-amber-100">
+                            <div className="p-6 border rounded-md bg-amber-50/30 border-amber-100">
                                 <InputField label="Chemicals/Fertilizers Used" placeholder="Pesticides, fertilizers with schedule" value={formData.farmingPractices.chemicalDetails.pesticidesFertilizersUsed} onChange={(val) => handleInputChange('farmingPractices.chemicalDetails.pesticidesFertilizersUsed', val)} themeColors={themeColors} disabled={isView} />
                             </div>
                         )}
@@ -518,14 +518,14 @@ const AddVendor = () => {
 
                 {/* 14. Orchard Images & Signature */}
                 <FormSection title="14. Assets & Verification" icon={FaSignature} themeColors={themeColors}>
-                    <div className="md:col-span-2 space-y-8">
+                    <div className="space-y-8 md:col-span-2">
                         <div className="space-y-4">
                             <label className="text-xs font-black uppercase opacity-40">Orchard Images (Multiple)</label>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                                 {existingFiles.orchardImages.map((img, idx) => (
-                                    <div key={`existing-${idx}`} className="aspect-video relative rounded-md overflow-hidden border shadow-sm group transition-transform hover:scale-105">
+                                    <div key={`existing-${idx}`} className="relative overflow-hidden transition-transform border rounded-md shadow-sm aspect-video group hover:scale-105">
                                         <a href={img.url} target="_blank" rel="noopener noreferrer">
-                                            <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                            <img src={img.url} alt="" className="object-cover w-full h-full" />
                                         </a>
                                         {isEdit && (
                                             <button 
@@ -539,13 +539,13 @@ const AddVendor = () => {
                                     </div>
                                 ))}
                                 {files.orchardImages.map((file, idx) => (
-                                    <div key={idx} className="aspect-video relative rounded-md overflow-hidden group border shadow-sm">
-                                        <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                                    <div key={idx} className="relative overflow-hidden border rounded-md shadow-sm aspect-video group">
+                                        <img src={URL.createObjectURL(file)} alt="" className="object-cover w-full h-full" />
                                         {!isView && (
                                             <button 
                                                 type="button"
                                                 onClick={() => removeOrchardImage(idx)}
-                                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute inset-0 flex items-center justify-center transition-opacity opacity-0 bg-black/40 group-hover:opacity-100"
                                             >
                                                 <FaTrash className="text-white" />
                                             </button>
@@ -553,8 +553,8 @@ const AddVendor = () => {
                                     </div>
                                 ))}
                                 {!isView && (
-                                    <label className="aspect-video flex flex-col items-center justify-center border-2 border-dashed rounded-md cursor-pointer hover:bg-gray-50 transition-all" style={{ borderColor: themeColors.border }}>
-                                        <FaPlus className="text-gray-300 mb-2" />
+                                    <label className="flex flex-col items-center justify-center transition-all border-2 border-dashed rounded-md cursor-pointer aspect-video hover:bg-gray-50" style={{ borderColor: themeColors.border }}>
+                                        <FaPlus className="mb-2 text-gray-300" />
                                         <span className="text-[10px] font-bold uppercase opacity-40">Upload Image</span>
                                         <input type="file" multiple onChange={(e) => handleFileChange(e, 'orchardImages')} className="hidden" />
                                     </label>
@@ -562,13 +562,13 @@ const AddVendor = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t" style={{ borderColor: themeColors.border }}>
+                        <div className="grid grid-cols-1 gap-6 pt-4 border-t md:grid-cols-2" style={{ borderColor: themeColors.border }}>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase opacity-60">Grower Signature</label>
                                 {existingFiles.growerSignature && (
-                                    <div className="mb-2 h-20 w-40 relative rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-white p-2 transition-transform hover:scale-105 group">
+                                    <div className="relative w-40 h-20 p-2 mb-2 overflow-hidden transition-transform bg-white border border-gray-100 rounded-lg shadow-sm hover:scale-105 group">
                                         <a href={existingFiles.growerSignature} target="_blank" rel="noopener noreferrer">
-                                            <img src={existingFiles.growerSignature} className="w-full h-full object-contain" alt="Signature" />
+                                            <img src={existingFiles.growerSignature} className="object-contain w-full h-full" alt="Signature" />
                                         </a>
                                         {isEdit && (
                                             <button 
@@ -596,7 +596,7 @@ const AddVendor = () => {
                             <button 
                                 type="submit"
                                 disabled={loading}
-                                className="px-10 py-4 cursor-pointer rounded-sm text-lg font-black shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="flex items-center gap-3 px-10 py-4 text-lg font-black transition-all rounded-sm shadow-2xl cursor-pointer hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                                 style={{ backgroundColor: themeColors.primary, color: themeColors.onPrimary }}
                             >
                                 {loading ? (isEdit ? 'Updating Profile...' : 'Saving Profile...') : (isEdit ? 'Update Vendor Profile' : <>Save Vendor Profile <FaArrowLeft className="rotate-180" /></>)}

@@ -312,14 +312,13 @@ const MenuBar = ({ editor }) => {
 
 const emptyForm = {
   name: "",
-  price: "",
   discountPercent: "",
   categoryId: "",
   varietyId: "",
   description: "",
   ingredients: "",
   shelfLife: "",
-  netWeight: [],
+  weightOptions: [],
   vendor_id: "",
   relatedProducts: [],
   aboutHtml: "",
@@ -441,14 +440,15 @@ function AddProduct() {
         if (prod) {
           setForm({
             name: prod.name || "",
-            price: typeof prod.price === "number" ? String(prod.price) : prod.price || "",
             discountPercent: typeof prod.discountPercent === "number" ? String(prod.discountPercent) : prod.discountPercent || "",
             varietyId: prod.variety?._id || prod.variety?.id || prod.variety || "",
             categoryId: prod.category?._id || prod.category?.id || prod.category || "",
             description: prod.description || "",
             ingredients: prod.about?.ingredients || "",
             shelfLife: prod.about?.shelfLife || "",
-            netWeight: Array.isArray(prod.about?.netWeight) ? prod.about.netWeight : (prod.about?.netWeight ? [String(prod.about.netWeight)] : []),
+            weightOptions: Array.isArray(prod.weightOptions) && prod.weightOptions.length > 0 
+              ? prod.weightOptions.map(wo => ({ weight: wo.weight, price: String(wo.price) })) 
+              : [],
             vendor_id: prod.vendor_id?._id || prod.vendor_id || "",
             relatedProducts: Array.isArray(prod.relatedProducts)
               ? prod.relatedProducts.map((rp) => rp._id || rp.id || rp)
@@ -476,8 +476,12 @@ function AddProduct() {
   const filteredVarietiesForSelect = useMemo(() => {
     if (!form.categoryId) return varieties;
     return varieties.filter((v) => {
-      const catId = v.category?._id || v.category || "";
-      return catId === form.categoryId;
+      if (Array.isArray(v.category)) {
+        return v.category.some(
+          (c) => (c?._id || c || "").toString() === form.categoryId.toString()
+        );
+      }
+      return (v.category?._id || v.category || "").toString() === form.categoryId.toString();
     });
   }, [varieties, form.categoryId]);
 
@@ -507,7 +511,7 @@ function AddProduct() {
   const buildFormData = () => {
     const fd = new FormData();
     fd.append("name", form.name.trim());
-    fd.append("price", form.price.trim());
+    
 
     if (form.discountPercent?.trim() !== "") {
       fd.append("discountPercent", form.discountPercent.trim());
@@ -532,10 +536,12 @@ function AddProduct() {
     const aboutData = {
       ingredients: form.ingredients.trim(),
       shelfLife: form.shelfLife.trim(),
-      netWeight: form.netWeight,
       aboutHtml: editor?.getHTML() || "",
     };
     fd.append("about", JSON.stringify(aboutData));
+    fd.append("weightOptions", JSON.stringify(
+      form.weightOptions.map(wo => ({ weight: wo.weight, price: Number(wo.price) || 0 }))
+    ));
     fd.append("relatedProducts", JSON.stringify(form.relatedProducts || []));
 
     if (mainImageFile) {
@@ -563,8 +569,12 @@ function AddProduct() {
       setError("Product name is required.");
       return;
     }
-    if (!form.price.trim()) {
-      setError("Price is required.");
+    if (form.weightOptions.length === 0) {
+      setError("Please select at least one weight option.");
+      return;
+    }
+    if (form.weightOptions.some(wo => !wo.price || Number(wo.price) <= 0)) {
+      setError("Please provide a valid price for all selected weight options.");
       return;
     }
     if (!id && !mainImageFile) {
@@ -748,34 +758,6 @@ function AddProduct() {
               </select>
             </div>
 
-            {/* Price */}
-            <div className="md:col-span-1">
-              <label
-                htmlFor="price"
-                className="block mb-1 text-xs font-semibold"
-                style={{ color: themeColors.text }}
-              >
-                Price (₹) <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="price"
-                name="price"
-                type="number"
-                min="0"
-                value={form.price}
-                onChange={handleChange}
-                required
-                disabled={isView}
-                className="w-full px-3 py-1.5 rounded-lg border text-sm focus:outline-none focus:ring-2"
-                style={{
-                  backgroundColor: themeColors.background,
-                  borderColor: themeColors.border,
-                  color: themeColors.text,
-                }}
-                placeholder="Product base price"
-              />
-            </div>
-
             {/* Discount */}
             <div className="md:col-span-1">
               <label
@@ -804,157 +786,71 @@ function AddProduct() {
               />
             </div>
 
-            {/* Net Weight */}
-            <div className="relative md:col-span-1">
-              <label
-                htmlFor="netWeight"
-                className="block mb-1 text-xs font-semibold"
-                style={{ color: themeColors.text }}
-              >
-                Net Weight
+            {/* Weight & Pricing Options */}
+            <div className="md:col-span-3 border p-3 rounded-lg" style={{ borderColor: themeColors.border }}>
+              <label className="block mb-2 text-sm font-bold" style={{ color: themeColors.text }}>
+                Weight & Pricing Options
               </label>
-              <div className="relative">
-                <div
-                  onClick={() => setNetWeightDropdownOpen(!netWeightDropdownOpen)}
-                  className="w-full px-3 py-1.5 rounded-lg border text-sm cursor-pointer flex flex-wrap gap-1 items-center min-h-[34px]"
-                  style={{
-                    backgroundColor: themeColors.background,
-                    borderColor: themeColors.border,
-                    color: themeColors.text,
-                  }}
-                >
-                  {form.netWeight.length > 0 ? (
-                    form.netWeight.map((nw) => (
-                      <span
-                        key={nw}
-                        className="px-2 py-0.5 rounded text-[11px] flex items-center gap-1 font-medium"
-                        style={{
-                          backgroundColor: themeColors.primary + "15",
-                          color: themeColors.primary,
-                        }}
-                      >
-                        {nw}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setForm((prev) => ({
-                              ...prev,
-                              netWeight: prev.netWeight.filter((w) => w !== nw),
-                            }));
+              <div className="flex flex-col gap-2">
+                {["3.5kg", "7kg", "10kg"].map((option) => {
+                  const existingOption = form.weightOptions.find(wo => wo.weight === option);
+                  const isChecked = !!existingOption;
+                  
+                  return (
+                    <div key={option} className="flex items-center gap-4 p-2 rounded transition-colors hover:bg-black/5" style={{ color: themeColors.text }}>
+                      <label className="flex items-center gap-2 cursor-pointer min-w-[80px]">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          disabled={isView}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setForm(prev => ({
+                                ...prev,
+                                weightOptions: [...prev.weightOptions, { weight: option, price: "" }]
+                              }));
+                            } else {
+                              setForm(prev => ({
+                                ...prev,
+                                weightOptions: prev.weightOptions.filter(wo => wo.weight !== option)
+                              }));
+                            }
                           }}
-                          className="opacity-70 hover:opacity-100 font-bold text-xs"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))
-                  ) : (
-                    <span className="opacity-60 text-xs">Select Weights</span>
-                  )}
-                  <FaChevronDown
-                    className={`w-3 h-3 ml-auto transition-transform duration-300 ${netWeightDropdownOpen ? "rotate-180" : ""}`}
-                    style={{ color: themeColors.text }}
-                  />
-                </div>
-
-                {netWeightDropdownOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-[45]"
-                      onClick={() => setNetWeightDropdownOpen(false)}
-                    ></div>
-                    <div
-                      className="absolute z-[50] w-full mt-1.5 max-h-60 overflow-y-auto rounded-lg border shadow-xl custom-scrollbar"
-                      style={{
-                        backgroundColor: themeColors.surface,
-                        borderColor: themeColors.border,
-                      }}
-                    >
-                      {["3kg", "6kg", "9kg"].map((option) => (
-                        <label
-                          key={option}
-                          className="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-black/5 transition-colors border-b border-black/5"
-                          style={{ color: themeColors.text }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={form.netWeight.includes(option)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setForm((prev) => ({
-                                  ...prev,
-                                  netWeight: [...prev.netWeight, option],
-                                }));
-                              } else {
-                                setForm((prev) => ({
-                                  ...prev,
-                                  netWeight: prev.netWeight.filter(
-                                    (w) => w !== option
-                                  ),
-                                }));
-                              }
-                            }}
-                            className="rounded border-gray-300 focus:ring-2"
-                            style={{ accentColor: themeColors.primary }}
-                          />
-                          <span className="text-sm font-medium">{option}</span>
-                        </label>
-                      ))}
+                          className="rounded border-gray-300 focus:ring-2"
+                        />
+                        <span className="text-sm font-semibold">{option}</span>
+                      </label>
                       
-                      {/* Custom input placed directly inside the dropdown */}
-                      <div className="p-3 border-t border-black/5" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex gap-2">
+                      {isChecked && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">Price (₹):</span>
                           <input
-                            type="text"
-                            value={customWeightInput}
-                            onChange={(e) => setCustomWeightInput(e.target.value)}
-                            placeholder="Custom (e.g. 5kg)"
-                            className="flex-1 px-3 py-2 rounded border text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                            type="number"
+                            min="0"
+                            value={existingOption.price}
+                            disabled={isView}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setForm(prev => ({
+                                ...prev,
+                                weightOptions: prev.weightOptions.map(wo => 
+                                  wo.weight === option ? { ...wo, price: val } : wo
+                                )
+                              }));
+                            }}
+                            className="px-2 py-1 rounded border text-sm w-32 focus:outline-none focus:ring-2"
                             style={{
                               backgroundColor: themeColors.background,
                               borderColor: themeColors.border,
-                              color: themeColors.text,
                             }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                if (customWeightInput.trim() && !form.netWeight.includes(customWeightInput.trim())) {
-                                  setForm((prev) => ({
-                                    ...prev,
-                                    netWeight: [...prev.netWeight, customWeightInput.trim()]
-                                  }));
-                                }
-                                setCustomWeightInput("");
-                              }
-                            }}
+                            placeholder="e.g. 500"
+                            required
                           />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (customWeightInput.trim() && !form.netWeight.includes(customWeightInput.trim())) {
-                                setForm((prev) => ({
-                                  ...prev,
-                                  netWeight: [...prev.netWeight, customWeightInput.trim()]
-                                }));
-                              }
-                              setCustomWeightInput("");
-                            }}
-                            className="px-4 py-2 rounded text-xs font-semibold hover:opacity-95 transition-opacity cursor-pointer"
-                            style={{
-                              backgroundColor: themeColors.primary,
-                              color: themeColors.onPrimary,
-                            }}
-                          >
-                            Add
-                          </button>
                         </div>
-                      </div>
+                      )}
                     </div>
-                  </>
-                )}
+                  );
+                })}
               </div>
             </div>
 

@@ -592,7 +592,15 @@ export default function Dashboard() {
                     className="divide-y"
                     style={{ borderColor: themeColors.border }}
                   >
-                    {latestProducts.map((p) => (
+                    {latestProducts.map((p) => {
+                      let price = 0;
+                      if (p.weightOptions && p.weightOptions.length > 0) {
+                        price = Math.min(...p.weightOptions.map(wo => wo.price));
+                      }
+                      const discount = p.discountPercent || 0;
+                      const finalPrice = Math.round(price * (1 - discount / 100));
+                      
+                      return (
                       <tr key={p._id}>
                         <td
                           className="px-4 py-2"
@@ -615,13 +623,13 @@ export default function Dashboard() {
                           className="px-4 py-2"
                           style={{ color: themeColors.text }}
                         >
-                          {fmtCurrency(p.price)}
+                          {fmtCurrency(price)}
                         </td>
                         <td
                           className="px-4 py-2"
                           style={{ color: themeColors.text }}
                         >
-                          {fmtCurrency(p.finalPrice)}
+                          {fmtCurrency(finalPrice)}
                         </td>
                         <td className="px-4 py-2">
                           <span
@@ -647,7 +655,7 @@ export default function Dashboard() {
                           {fmtDate(p.createdAt)}
                         </td>
                       </tr>
-                    ))}
+                    )})}
                     {latestProducts.length === 0 && (
                       <tr>
                         <td

@@ -1,5 +1,5 @@
 // src/pages/Categories.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
 import { useAuth } from "../context/AuthContext";
@@ -38,7 +38,7 @@ const fmtCurrency = (n) =>
 const emptyForm = {
   name: "",
   slug: "",
-  category: "",
+  category: [],
   description: "",
   image: null,
   imagePreview: "",
@@ -62,6 +62,20 @@ export default function Categories() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("active"); // 'active' or 'inactive'
   const [productCategories, setProductCategories] = useState([]);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const fetchProductCategoriesList = async () => {
     try {
@@ -172,7 +186,9 @@ export default function Categories() {
     setForm({
       name: cat.name || "",
       slug: cat.slug || "",
-      category: cat.category?._id || cat.category || "",
+      category: Array.isArray(cat.category) 
+        ? cat.category.map(c => c._id || c.id || c) 
+        : (cat.category ? [cat.category._id || cat.category.id || cat.category] : []),
       description: cat.description || "",
       image: null,
       imagePreview: cat.image?.url || "", // assuming API returns { image: { url } }
@@ -321,8 +337,8 @@ export default function Categories() {
       return;
     }
 
-    if (!form.category) {
-      setError("Category is required.");
+    if (!form.category || form.category.length === 0) {
+      setError("At least one category is required.");
       return;
     }
 
@@ -339,7 +355,7 @@ export default function Categories() {
         payload = new FormData();
         payload.append("name", form.name.trim());
         if (form.slug.trim()) payload.append("slug", form.slug.trim());
-        payload.append("category", form.category);
+        form.category.forEach(c => payload.append("category", c));
         if (form.description.trim())
           payload.append("description", form.description.trim());
         payload.append("image", form.image);
@@ -678,7 +694,9 @@ export default function Categories() {
                       className="px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400"
                       style={{ color: themeColors.textPrimary }}
                     >
-                      {cat.category?.name || cat.category || "-"}
+                      {Array.isArray(cat.category) && cat.category.length > 0
+                        ? cat.category.map(c => c.name || c).join(", ")
+                        : (cat.category?.name || cat.category || "-")}
                     </td>
                     <td
                       className="px-4 py-2 text-xs"
@@ -855,35 +873,66 @@ export default function Categories() {
                 />
               </div>
 
-              {/* Category */}
-              <div>
+              {/* Category Dropdown with Checkboxes */}
+              <div ref={dropdownRef} className="relative">
                 <label
-                  htmlFor="category"
                   className="block mb-1 text-sm font-medium"
                   style={{ color: themeColors.text }}
                 >
-                  Category <span className="text-red-500">*</span>
+                  Categories <span className="text-red-500">*</span>
                 </label>
-                <select
-                  id="category"
-                  name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                <div
+                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm cursor-pointer flex justify-between items-center bg-white"
                   style={{
                     backgroundColor: themeColors.background,
                     borderColor: themeColors.border,
                     color: themeColors.text,
                   }}
                 >
-                  <option value="">Select Category</option>
-                  {productCategories.map((c) => (
-                    <option key={c._id || c.id} value={c._id || c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  <span className="truncate">
+                    {form.category.length > 0
+                      ? productCategories
+                          .filter((c) => form.category.includes(c._id || c.id))
+                          .map((c) => c.name)
+                          .join(", ")
+                      : "Select Categories"}
+                  </span>
+                  <span className="text-xs opacity-60">▼</span>
+                </div>
+                {isCategoryDropdownOpen && (
+                  <div
+                    className="absolute z-10 w-full mt-1 flex flex-col gap-2 max-h-48 overflow-y-auto p-3 border rounded-lg shadow-lg"
+                    style={{ backgroundColor: themeColors.background, borderColor: themeColors.border }}
+                  >
+                    {productCategories.map((c) => {
+                      const cId = c._id || c.id;
+                      const isChecked = form.category.includes(cId);
+                      return (
+                        <label key={cId} className="flex items-center gap-2 cursor-pointer hover:bg-black/5 p-1 rounded transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setForm((prev) => ({ ...prev, category: [...prev.category, cId] }));
+                              } else {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  category: prev.category.filter((id) => id !== cId),
+                                }));
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                          />
+                          <span style={{ color: themeColors.text }} className="text-sm">
+                            {c.name}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Slug */}
@@ -948,7 +997,7 @@ export default function Categories() {
                   className="block mb-1 text-sm font-medium"
                   style={{ color: themeColors.text }}
                 >
-                  Variety Image <span className="text-red-500">*</span>
+                  Variety Image <span className="text-xs opacity-70">(optional)</span>
                 </label>
 
                 {/* Image Preview */}

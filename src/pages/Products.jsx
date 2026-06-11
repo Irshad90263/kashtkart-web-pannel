@@ -165,13 +165,14 @@ export default function Products() {
 
 
 
-  const getFinalPrice = (p) => {
-    if (typeof p.finalPrice === "number") return p.finalPrice;
-    if (typeof p.price === "number" && p.discountPercent) {
-      const discount = (p.price * Number(p.discountPercent || 0)) / 100;
-      return p.price - discount;
+  const getDisplayPrices = (p) => {
+    let price = 0;
+    if (p.weightOptions && p.weightOptions.length > 0) {
+      price = Math.min(...p.weightOptions.map(wo => wo.price));
     }
-    return p.price;
+    const discount = p.discountPercent || 0;
+    const finalPrice = Math.round(price * (1 - discount / 100));
+    return { price, finalPrice };
   };
 
   return (
@@ -616,7 +617,7 @@ export default function Products() {
                     p.categoryId?.name ||
                     categoryMap[p.categoryId] ||
                     "-";
-                  const finalPrice = getFinalPrice(p);
+                  const { price: originalPrice, finalPrice } = getDisplayPrices(p);
                   return (
                     <div
                       key={p._id || p.id || p.slug}
@@ -685,7 +686,7 @@ export default function Products() {
                             </div>
                             {p.discountPercent ? (
                               <div className="text-[11px] opacity-70 line-through">
-                                {fmtCurrency(p.price)}
+                                {fmtCurrency(originalPrice)}
                               </div>
                             ) : null}
                           </div>
