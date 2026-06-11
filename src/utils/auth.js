@@ -1,14 +1,14 @@
 export const getAdminToken = () => {
   if (typeof window === "undefined") return null;
   
-  // check direct key first
-  const token = localStorage.getItem("admin-token");
-  if (token) return token;
+  const token = sessionStorage.getItem("admin-token");
+  return token || null;
+};
 
-  // fallback to admin-data
+export const getAdminData = () => {
   try {
-    const data = JSON.parse(localStorage.getItem("admin-data") || "{}");
-    return data.token || null;
+    const data = JSON.parse(sessionStorage.getItem("admin-data") || "{}");
+    return data;
   } catch {
     return null;
   }

@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { Suspense } from "react";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
@@ -25,7 +30,12 @@ function App() {
       <Toaster position="top-right" />
       <Routes>
         {/* Public */}
-        <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route
+          path="/login"
+          element={
+            isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login />
+          }
+        />
 
         {/* Protected */}
         {isLoggedIn ? (
@@ -43,9 +53,9 @@ function App() {
             ))}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
-         ) : (
+        ) : (
           <Route path="*" element={<Navigate to="/login" replace />} />
-        )} 
+        )}
       </Routes>
     </Router>
   );

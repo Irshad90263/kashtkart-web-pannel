@@ -15,6 +15,10 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { Highlight } from "@tiptap/extension-highlight";
 import { BubbleMenu } from "@tiptap/extension-bubble-menu";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
 import {
   FaBold,
   FaItalic,
@@ -37,12 +41,14 @@ import {
   FaHeading,
   FaImages,
   FaPlus,
+  FaTable,
 } from "react-icons/fa";
 import http from "../apis/http"; // Assuming http instance for uploads
 import Swal from "sweetalert2";
 
 const MenuBar = ({ editor }) => {
   const { themeColors } = useTheme();
+  const [tableMenuOpen, setTableMenuOpen] = useState(false);
   if (!editor) return null;
 
   const addImage = () => {
@@ -181,6 +187,40 @@ const MenuBar = ({ editor }) => {
           </button>
         ),
       )}
+      <div className="w-px h-6 mx-1 bg-gray-300" />
+      {/* Table Options Dropdown */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => {
+            setTableMenuOpen(!tableMenuOpen);
+          }}
+          className={`p-2 rounded-md hover:bg-gray-200 transition-all flex items-center justify-center ${tableMenuOpen || editor.isActive('table') ? "bg-gray-200" : ""} text-gray-600`}
+          title="Table Menu"
+        >
+          <span className="flex items-center justify-center w-5 h-5 text-sm">
+            <FaTable />
+          </span>
+        </button>
+        {tableMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-[100]" onClick={() => setTableMenuOpen(false)}></div>
+            <div className="absolute z-[110] left-0 mt-1 p-2 bg-white border rounded-lg shadow-xl flex flex-col gap-1 min-w-[160px] text-xs" style={{ borderColor: themeColors.border }}>
+              <button type="button" onClick={() => { editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); setTableMenuOpen(false); }} className="text-left px-2 py-1.5 hover:bg-gray-100 rounded">Insert 3x3 Table</button>
+              <div className="h-px w-full bg-gray-200 my-0.5" />
+              <button type="button" onClick={() => { editor.chain().focus().addColumnBefore().run(); }} className="text-left px-2 py-1 hover:bg-gray-100 rounded">Add Column Before</button>
+              <button type="button" onClick={() => { editor.chain().focus().addColumnAfter().run(); }} className="text-left px-2 py-1 hover:bg-gray-100 rounded">Add Column After</button>
+              <button type="button" onClick={() => { editor.chain().focus().deleteColumn().run(); }} className="text-left px-2 py-1 hover:bg-red-50 text-red-600 rounded">Delete Column</button>
+              <div className="h-px w-full bg-gray-200 my-0.5" />
+              <button type="button" onClick={() => { editor.chain().focus().addRowBefore().run(); }} className="text-left px-2 py-1 hover:bg-gray-100 rounded">Add Row Before</button>
+              <button type="button" onClick={() => { editor.chain().focus().addRowAfter().run(); }} className="text-left px-2 py-1 hover:bg-gray-100 rounded">Add Row After</button>
+              <button type="button" onClick={() => { editor.chain().focus().deleteRow().run(); }} className="text-left px-2 py-1 hover:bg-red-50 text-red-600 rounded">Delete Row</button>
+              <div className="h-px w-full bg-gray-200 my-0.5" />
+              <button type="button" onClick={() => { editor.chain().focus().deleteTable().run(); setTableMenuOpen(false); }} className="text-left px-2 py-1.5 hover:bg-red-50 text-red-600 rounded font-bold">Delete Table</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };
@@ -218,6 +258,10 @@ function AddBlog() {
       Color,
       Highlight.configure({ multicolor: true }),
       BubbleMenu,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     editorProps: {
       handleDrop: (view, event, slice, moved) => {
@@ -663,6 +707,46 @@ const editorStyles = `
   /* Heading styles */
   .custom-editor h2 { font-size: 1.5rem; font-weight: bold; margin-top: 1.5rem; }
   .custom-editor h3 { font-size: 1.25rem; font-weight: bold; margin-top: 1.2rem; }
+
+  /* Table styles */
+  .custom-editor table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .custom-editor table td,
+  .custom-editor table th {
+    min-width: 1em;
+    border: 1px solid #ced4da;
+    padding: 6px 8px;
+    vertical-align: top;
+    box-sizing: border-box;
+    position: relative;
+  }
+  .custom-editor table th {
+    font-weight: bold;
+    text-align: left;
+    background-color: #f8f9fa;
+  }
+  .custom-editor table .selectedCell:after {
+    z-index: 2;
+    position: absolute;
+    content: "";
+    left: 0; right: 0; top: 0; bottom: 0;
+    background: rgba(200, 200, 255, 0.4);
+    pointer-events: none;
+  }
+  .custom-editor table .column-resize-handle {
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: -2px;
+    width: 4px;
+    background-color: #adf;
+    pointer-events: none;
+  }
 
   /* Editor Resize Handle */
   .custom-editor.resize-y {

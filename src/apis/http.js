@@ -8,36 +8,39 @@ const http = axios.create({
 
 // Attach token for every request
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem("admin-token");
-  const tokenExpiry = localStorage.getItem("admin-token-expiry");
-  
-  // Check if token is expired before making request
-  if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
-    // Token expired, clear localStorage
-    localStorage.removeItem("admin-data");
-    localStorage.removeItem("admin-token");
-    localStorage.removeItem("admin-token-expiry");
-    // Redirect to login or refresh page
+  const token = sessionStorage.getItem("admin-token");
+  const tokenExpiry = sessionStorage.getItem("admin-token-expiry");
+
+  // If token is expired before request
+  if (token && tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+    // Token expired, clear sessionStorage
+    sessionStorage.removeItem("admin-data");
+    sessionStorage.removeItem("admin-token");
+    sessionStorage.removeItem("admin-token-expiry");
     window.location.href = "/login";
     return Promise.reject(new Error("Token expired"));
   }
-  
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Handle response errors (like 401 unauthorized)
+// Response Interceptor
 http.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token is invalid/expired, clear localStorage
-      localStorage.removeItem("admin-data");
-      localStorage.removeItem("admin-token");
-      localStorage.removeItem("admin-token-expiry");
-      window.location.href = "/login";
+    if (error.response && error.response.status === 401) {
+      // Token is invalid/expired, clear sessionStorage
+      sessionStorage.removeItem("admin-data");
+      sessionStorage.removeItem("admin-token");
+      sessionStorage.removeItem("admin-token-expiry");
+      
+      // Redirect to login if not already there
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

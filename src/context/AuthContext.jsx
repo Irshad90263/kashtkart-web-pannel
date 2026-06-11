@@ -15,16 +15,16 @@ export const AuthProvider = ({ children }) => {
 
   // hydrate from localStorage (persisted login)
   useEffect(() => {
-    const savedUser = localStorage.getItem(USER_KEY);
-    const savedToken = localStorage.getItem(TOKEN_KEY);
-    const tokenExpiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+    const savedUser = sessionStorage.getItem(USER_KEY);
+    const savedToken = sessionStorage.getItem(TOKEN_KEY);
+    const tokenExpiry = sessionStorage.getItem(TOKEN_EXPIRY_KEY);
 
     // Check if token is expired
     if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
       // Token expired, clear everything
-      localStorage.removeItem(USER_KEY);
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(TOKEN_EXPIRY_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
       setLoading(false);
       return;
     }
@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
         setAdmin(JSON.parse(savedUser));
       } catch (e) {
         console.error("Error parsing saved admin data", e);
-        localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(USER_KEY);
       }
     }
 
@@ -49,24 +49,24 @@ export const AuthProvider = ({ children }) => {
     setAdmin(adminData);
     setToken(adminData?.token || null);
 
-    localStorage.setItem(USER_KEY, JSON.stringify(adminData));
+    sessionStorage.setItem(USER_KEY, JSON.stringify(adminData));
     if (adminData?.token) {
-      localStorage.setItem(TOKEN_KEY, adminData.token);
+      sessionStorage.setItem(TOKEN_KEY, adminData.token);
       // Set expiry time to 7 days from now
-      const expiryTime = Date.now() + (7 * 24 * 60 * 60 * 1000);
-      localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+      const expiryTime = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      sessionStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
     } else {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(TOKEN_EXPIRY_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
     }
   };
 
   const logout = () => {
     setAdmin(null);
     setToken(null);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    sessionStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
   };
 
   const isLoggedIn = Boolean(admin && token);

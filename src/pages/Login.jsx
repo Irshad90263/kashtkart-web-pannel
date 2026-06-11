@@ -5,7 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useFont } from "../context/FontContext";
 import { useNavigate } from "react-router-dom";
 import { adminLogin } from "../apis/auth";
-import logo from "../assets/logo.png"
+import logo from "../assets/logo.png";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -93,15 +93,12 @@ const Login = () => {
             // style={{ color: themeColors.primary }}
             style={{ color: "#028F22" }}
           >
-            KaashtKart Mango 
+            KaashtKart Mango
             {/* 🥭 */}
           </h1>
 
-          <p
-            className="text-sm"
-            style={{ color: themeColors.textSecondary }}
-          >
-           Admin Panel
+          <p className="text-sm" style={{ color: themeColors.textSecondary }}>
+            Admin Panel
           </p>
         </div>
 
@@ -127,7 +124,8 @@ const Login = () => {
               htmlFor="adminId"
               className="block mb-2 text-sm font-medium"
               // style={{ color: themeColors.text }}
-              style={{ color: "#028F22" }}            >
+              style={{ color: "#028F22" }}
+            >
               Admin ID
             </label>
             <input

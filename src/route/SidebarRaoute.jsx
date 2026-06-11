@@ -17,6 +17,7 @@ import {
   FaTree,
   FaCalendarCheck,
   FaTags,
+  FaStar,
 } from "react-icons/fa";
 
 // pages
@@ -34,6 +35,7 @@ const Blogs = lazy(() => import("../pages/Blogs"));
 const AddBlog = lazy(() => import("../pages/AddBlog"));
 const ViewBlog = lazy(() => import("../pages/ViewBlog"));
 const ChangePassword = lazy(() => import("../pages/ChangePassword"));
+const Reviews = lazy(() => import("../pages/Reviews"));
 const Users = lazy(() => import("../pages/Users"));
 const PayMethods = lazy(() => import("../pages/PayMethods"));
 const Vendors = lazy(() => import("../pages/Vendors"));
@@ -71,6 +73,7 @@ const routes = [
   { path: "/blogs/edit/:id", component: AddBlog, name: "Edit Blog", icon: FaPlus, hide: true },
   { path: "/blogs/view/:id", component: ViewBlog, name: "View Blog", icon: FaPlus, hide: true },
   { path: "/orchards", component: Orchards, name: "Orchards", icon: FaTree },
+  { path: "/reviews", component: Reviews, name: "Reviews", icon: FaStar },
   { path: "/change-password", component: ChangePassword, name: "Change Password", icon: FaKey },
 ];
 
