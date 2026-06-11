@@ -44,24 +44,28 @@ const CorporateInquiries = lazy(() => import("../pages/CorporateInquiries"));
 const Orchards = lazy(() => import("../pages/Orchards"));
 const Bookings = lazy(() => import("../pages/Bookings"));
 const ViewBooking = lazy(() => import("../pages/ViewBooking"));
-
+const BulkOrders = lazy(() => import("../pages/BulkOrders"));
+const ViewBulkOrder = lazy(() => import("../pages/ViewBulkOrder"));
 
 const routes = [
   { path: "/dashboard", component: Dashboard, name: "Dashboard", icon: FaTachometerAlt },
+  { path: "/categories", component: ProductCategories, name: "Categories", icon: FaTags },
+  { path: "/varieties", component: Categories, name: "Varieties", icon: FaBox },
+  { path: "/products", component: Products, name: "Products", icon: FaBox },
+  { path: "/orders", component: Orders, name: "Orders", icon: FaShoppingCart },
+  { path: "/bulk-orders", component: BulkOrders, name: "Bulk Orders", icon: FaBox },
   { path: "/corporate-inquiries", component: CorporateInquiries, name: "Corporate Gifting", icon: FaBriefcase },
+  { path: "/bulk-orders/view/:id", component: ViewBulkOrder, name: "View Bulk Order", icon: FaBox, hide: true },
+  { path: "/bulk-orders/edit/:id", component: ViewBulkOrder, name: "Edit Bulk Order", icon: FaBox, hide: true },
   { path: "/users", component: Users, name: "Users", icon: FaUsers },
   { path: "/vendors", component: Vendors, name: "Vendors", icon: FaStore },
   { path: "/vendors/add", component: AddVendor, name: "Add Vendor", icon: FaPlus, hide: true },
   { path: "/vendors/edit/:id", component: AddVendor, name: "Edit Vendor", icon: FaPlus, hide: true },
   { path: "/vendors/view/:id", component: AddVendor, name: "View Vendor", icon: FaPlus, hide: true },
-  { path: "/varieties", component: Categories, name: "Varieties", icon: FaBox },
-  { path: "/categories", component: ProductCategories, name: "Categories", icon: FaTags },
-  { path: "/products", component: Products, name: "Products", icon: FaBox },
   { path: "/products/add", component: AddProduct, name: "Add Product", icon: FaPlus, hide: true },
   { path: "/products/edit/:id", component: AddProduct, name: "Edit Product", icon: FaPlus, hide: true },
   { path: "/products/view/:id", component: AddProduct, name: "View Product", icon: FaPlus, hide: true },
   // { path: "/offers", component: Offers, name: "Offers", icon: FaCoins },
-  { path: "/orders", component: Orders, name: "Orders", icon: FaShoppingCart },
   { path: "/bookings", component: Bookings, name: "Bookings", icon: FaCalendarCheck },
   { path: "/bookings/view/:id", component: ViewBooking, name: "View Booking", icon: FaCalendarCheck, hide: true },
   { path: "/enquiries", component: Enquiries, name: "Enquiries", icon: FaEnvelopeOpenText },
